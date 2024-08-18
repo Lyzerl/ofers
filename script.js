@@ -207,4 +207,4 @@ document.addEventListener('DOMContentLoaded', function() {
 
         return formData;
     }
-});
+}); // Closing the DOMContentLoaded event listener function
