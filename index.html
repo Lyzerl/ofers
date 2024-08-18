@@ -5,94 +5,141 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>מערכת הצעות מחיר</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; }
-        .container { display: flex; }
-        .column { flex: 1; padding: 10px; }
-        .form-group { margin-bottom: 10px; }
-        label { display: block; }
-        input, select { width: 100%; }
-        .menu-category { margin-left: 20px; }
-        .add-item { cursor: pointer; color: blue; }
-        #error-message { color: red; font-weight: bold; }
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 1000px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input, select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            display: inline-block;
+            background: #333;
+            color: #fff;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #444;
+        }
+        #menuItems {
+            margin-top: 20px;
+        }
+        .menu-category {
+            margin-bottom: 15px;
+        }
+        .add-item {
+            color: blue;
+            cursor: pointer;
+        }
+        #summary {
+            margin-top: 20px;
+            padding: 10px;
+            background: #f9f9f9;
+            border-radius: 5px;
+        }
+        @media (max-width: 600px) {
+            .container {
+                padding: 10px;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="column">
-            <h2>מערכת הצעות מחיר</h2>
+        <h1>מערכת הצעות מחיר</h1>
+        <div id="error-message" style="color: red;"></div>
+        
+        <form id="quoteForm">
             <div class="form-group">
                 <label for="customerName">שם לקוח:</label>
-                <input type="text" id="customerName">
-            </div>
-            <div class="form-group">
-                <label for="phone">טלפון:</label>
-                <input type="tel" id="phone">
-            </div>
-            <div class="form-group">
-                <label for="email">דוא"ל:</label>
-                <input type="email" id="email">
-            </div>
-            <div class="form-group">
-                <label for="eventLocation">מיקום האירוע:</label>
-                <input type="text" id="eventLocation">
+                <input type="text" id="customerName" required>
             </div>
             <div class="form-group">
                 <label for="address">כתובת:</label>
-                <input type="text" id="address">
+                <input type="text" id="address" required>
             </div>
             <div class="form-group">
-                <label for="date">תאריך:</label>
-                <input type="date" id="date">
+                <label for="email">אימייל:</label>
+                <input type="email" id="email" required>
             </div>
             <div class="form-group">
-                <label for="contactPerson">איש קשר:</label>
-                <input type="text" id="contactPerson">
+                <label for="phone">טלפון:</label>
+                <input type="tel" id="phone" required>
             </div>
             <div class="form-group">
-                <label for="contactPhone">טלפון איש קשר:</label>
-                <input type="tel" id="contactPhone">
+                <label for="eventLocation">מיקום האירוע:</label>
+                <input type="text" id="eventLocation" required>
+            </div>
+            <div class="form-group">
+                <label for="eventDate">תאריך האירוע:</label>
+                <input type="date" id="eventDate" required>
             </div>
             <div class="form-group">
                 <label for="menuType">סוג תפריט:</label>
-                <select id="menuType"></select>
+                <select id="menuType" required></select>
             </div>
-            <div id="menuPrice"></div>
-        </div>
-        <div class="column">
             <div id="menuItems"></div>
             <div class="form-group">
-                <label for="delivery">הובלה:</label>
-                <input type="number" id="delivery">
+                <label for="delivery">מחיר הובלה:</label>
+                <input type="number" id="delivery" step="0.01">
             </div>
             <div id="summary"></div>
-            <button onclick="generatePDF()">ייצוא ל-PDF</button>
-            <button onclick="generateExcel()">ייצוא ל-Excel</button>
-        </div>
+            <button type="button" onclick="generatePDF()">ייצוא ל-PDF</button>
+            <button type="button" onclick="generateExcel()">ייצוא ל-Excel</button>
+        </form>
     </div>
-    <div id="error-message"></div>
 
     <script>
-        const errorMessageElement = document.getElementById('error-message');
         const baseUrl = 'https://raw.githubusercontent.com/lyzerl/ofers/main/';
         const files = {
-            menus: 'MENUS.csv',
-            priceList: 'PRICE_LIST.csv'
+            menu: 'MENU.csv',
+            priceList: 'PRICELIST.csv'
         };
 
-        let menus, priceList;
+        let menuData, priceListData;
 
         Promise.all([
-            loadCSV(baseUrl + files.menus),
+            loadCSV(baseUrl + files.menu),
             loadCSV(baseUrl + files.priceList)
-        ]).then(([menusData, priceListData]) => {
-            menus = menusData;
-            priceList = priceListData;
+        ]).then(([menu, priceList]) => {
+            menuData = menu;
+            priceListData = priceList;
             populateMenuTypes();
-            errorMessageElement.textContent = 'הקבצים נטענו בהצלחה!';
+            document.getElementById('error-message').textContent = 'הקבצים נטענו בהצלחה!';
         }).catch(error => {
             console.error('Error loading CSV files:', error);
-            errorMessageElement.textContent = 'שגיאה בטעינת הקבצים: ' + error.message;
+            document.getElementById('error-message').textContent = 'שגיאה בטעינת הקבצים: ' + error.message;
         });
 
         function loadCSV(url) {
@@ -117,7 +164,7 @@
 
         function populateMenuTypes() {
             const menuTypeSelect = document.getElementById('menuType');
-            menus.forEach(menu => {
+            menuData.forEach(menu => {
                 const option = document.createElement('option');
                 option.value = menu['סוג תפריט'];
                 option.textContent = menu['סוג תפריט'];
@@ -130,104 +177,116 @@
         function updateMenuItems() {
             const selectedMenuType = document.getElementById('menuType').value;
             const menuItems = document.getElementById('menuItems');
-            const menuPrice = document.getElementById('menuPrice');
             menuItems.innerHTML = '';
 
-            const selectedMenu = menus.find(menu => menu['סוג תפריט'] === selectedMenuType);
+            const selectedMenu = menuData.find(menu => menu['סוג תפריט'] === selectedMenuType);
             if (!selectedMenu) return;
 
-            menuPrice.textContent = `מחיר מנה: ₪${selectedMenu['מחיר למנה']}`;
-
             const categories = [
-                { name: 'סלטים', quantity: selectedMenu['כמות סלטים'], maxPrice: Infinity },
-                { name: 'מנות ראשונות', quantity: selectedMenu['כמות מנות ראשונות'], maxPrice: selectedMenu['מקסימום מחיר מנה ראשונה'] },
-                { name: 'מנות עיקריות', quantity: selectedMenu['כמות מנות עיקריות'], maxPrice: selectedMenu['מקסימום מחיר מנה עיקרית'] },
-                { name: 'תוספות', quantity: selectedMenu['כמות תוספות'], maxPrice: selectedMenu['מקסימום מחיר לתוספות'] },
-                { name: 'קינוחים', quantity: 1, maxPrice: selectedMenu['מחיר מקסימום לקינוח'] },
-                { name: 'לחמניות', quantity: selectedMenu['כמות לחמניה'], maxPrice: Infinity }
+                { name: 'סלטים', quantity: parseInt(selectedMenu['כמות סלטים']), maxPrice: Infinity },
+                { name: 'מנות ראשונות', quantity: parseInt(selectedMenu['כמות מנות ראשונות']), maxPrice: parseFloat(selectedMenu['מקסימום מחיר מנה ראשונה']) },
+                { name: 'מנות עיקריות', quantity: parseInt(selectedMenu['כמות מנות עיקריות']), maxPrice: parseFloat(selectedMenu['מקסימום מחיר מנה עיקרית']) },
+                { name: 'תוספות', quantity: parseInt(selectedMenu['כמות תוספות']), maxPrice: parseFloat(selectedMenu['מקסימום מחיר לתוספות']) },
+                { name: 'קינוחים', quantity: 1, maxPrice: parseFloat(selectedMenu['מחיר מקסימום לקינוח']) }
             ];
 
             categories.forEach(category => {
-                const categoryItems = priceList.filter(item => 
-                    item['קטגוריה'] === category.name && parseFloat(item['מחיר']) <= category.maxPrice
-                );
-
+                const categoryItems = priceListData.filter(item => item['קטגוריה'] === category.name);
                 if (categoryItems.length > 0) {
                     const categoryDiv = document.createElement('div');
+                    categoryDiv.className = 'menu-category';
                     categoryDiv.innerHTML = `<h3>${category.name}</h3>`;
-                    menuItems.appendChild(categoryDiv);
-
+                    
                     for (let i = 0; i < category.quantity; i++) {
-                        const select = document.createElement('select');
-                        select.innerHTML = '<option value="">בחר פריט</option>';
-                        categoryItems.forEach(item => {
-                            select.innerHTML += `<option value="${item['מחיר']}">${item['פריט']} - ₪${item['מחיר']}</option>`;
-                        });
-                        select.addEventListener('change', updateSummary);
-                        const itemDiv = document.createElement('div');
-                        itemDiv.className = 'menu-category';
-                        itemDiv.appendChild(select);
-                        menuItems.appendChild(itemDiv);
+                        const select = createItemSelect(categoryItems, category.maxPrice);
+                        categoryDiv.appendChild(select);
                     }
 
                     const addItemSpan = document.createElement('span');
                     addItemSpan.textContent = '+ הוסף פריט';
                     addItemSpan.className = 'add-item';
-                    addItemSpan.onclick = () => addExtraItem(category.name, categoryItems);
-                    menuItems.appendChild(addItemSpan);
+                    addItemSpan.onclick = () => addExtraItem(categoryItems, categoryDiv);
+                    categoryDiv.appendChild(addItemSpan);
+
+                    menuItems.appendChild(categoryDiv);
                 }
             });
 
             updateSummary();
         }
 
-        function addExtraItem(category, items) {
+        function createItemSelect(items, maxPrice) {
+            const select = document.createElement('select');
+            select.innerHTML = '<option value="">בחר פריט</option>';
+            items.forEach(item => {
+                if (parseFloat(item['מחיר']) <= maxPrice) {
+                    select.innerHTML += `<option value="${item['מחיר']}">${item['פריט']} - ₪${item['מחיר']}</option>`;
+                }
+            });
+            select.addEventListener('change', updateSummary);
+            return select;
+        }
+
+        function addExtraItem(items, categoryDiv) {
             const select = document.createElement('select');
             select.innerHTML = '<option value="">בחר פריט נוסף</option>';
             items.forEach(item => {
                 select.innerHTML += `<option value="${item['מחיר']}">${item['פריט']} - ₪${item['מחיר']}</option>`;
             });
             select.addEventListener('change', updateSummary);
-            const itemDiv = document.createElement('div');
-            itemDiv.className = 'menu-category';
-            itemDiv.appendChild(select);
-            document.getElementById('menuItems').appendChild(itemDiv);
+            categoryDiv.insertBefore(select, categoryDiv.lastChild);
             updateSummary();
         }
 
         function updateSummary() {
             const summary = document.getElementById('summary');
-            const selectedItems = document.querySelectorAll('#menuItems select');
+            const selectedMenuType = document.getElementById('menuType').value;
+            const selectedMenu = menuData.find(menu => menu['סוג תפריט'] === selectedMenuType);
+            const basePrice = parseFloat(selectedMenu['מחיר למנה']);
             const delivery = parseFloat(document.getElementById('delivery').value) || 0;
-            const menuType = document.getElementById('menuType').value;
-            const selectedMenu = menus.find(menu => menu['סוג תפריט'] === menuType);
             
-            let total = parseFloat(selectedMenu['מחיר למנה']) + delivery;
-            let summaryHTML = '<h3>סיכום הזמנה</h3><ul>';
-            summaryHTML += `<li>מחיר בסיס למנה: ₪${selectedMenu['מחיר למנה']}</li>`;
-            
-            selectedItems.forEach(item => {
-                if (item.value) {
-                    const price = parseFloat(item.value);
-                    total += price;
-                    summaryHTML += `<li>${item.options[item.selectedIndex].text}</li>`;
+            let totalExtras = 0;
+            const selectedItems = document.querySelectorAll('#menuItems select');
+            selectedItems.forEach(select => {
+                if (select.value) {
+                    totalExtras += parseFloat(select.value);
                 }
             });
-            
-            summaryHTML += `<li>הובלה: ₪${delivery}</li>`;
-            summaryHTML += `</ul><p>סה"כ: ₪${total}</p>`;
-            
+
+            const total = basePrice + totalExtras + delivery;
+
+            let summaryHTML = `
+                <h3>סיכום הזמנה</h3>
+                <p>מחיר בסיס למנה: ₪${basePrice.toFixed(2)}</p>
+                <p>תוספות: ₪${totalExtras.toFixed(2)}</p>
+                <p>הובלה: ₪${delivery.toFixed(2)}</p>
+                <p><strong>סה"כ: ₪${total.toFixed(2)}</strong></p>
+            `;
+
             summary.innerHTML = summaryHTML;
         }
 
         document.getElementById('delivery').addEventListener('input', updateSummary);
 
         function generatePDF() {
-            alert('פונקציונליות ייצוא ל-PDF תתווסף בהמשך');
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            // Add content to PDF
+            doc.text("הצעת מחיר", 10, 10);
+            // Add more content as needed
+
+            doc.save("הצעת_מחיר.pdf");
         }
 
         function generateExcel() {
-            alert('פונקציונליות ייצוא ל-Excel תתווסף בהמשך');
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.json_to_sheet([
+                { "שם לקוח": document.getElementById('customerName').value },
+                // Add more fields as needed
+            ]);
+            XLSX.utils.book_append_sheet(wb, ws, "הצעת מחיר");
+            XLSX.writeFile(wb, "הצעת_מחיר.xlsx");
         }
     </script>
 </body>
