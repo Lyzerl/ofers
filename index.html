@@ -6,74 +6,64 @@
     <title>מערכת הצעות מחיר</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
-        .container { max-width: 800px; margin: 0 auto; }
-        .form-row { display: flex; margin-bottom: 10px; }
-        .form-group { flex: 1; margin-right: 10px; }
-        .form-group:last-child { margin-right: 0; }
-        input, select { width: 100%; padding: 5px; }
-        #error-message { color: red; font-weight: bold; margin: 20px 0; }
-        button { padding: 10px; margin-right: 10px; }
+        body { font-family: Arial, sans-serif; }
+        .container { display: flex; }
+        .column { flex: 1; padding: 10px; }
+        .form-group { margin-bottom: 10px; }
+        label { display: block; }
+        input, select { width: 100%; }
+        #error-message { color: red; font-weight: bold; }
     </style>
 </head>
 <body>
+    <div id="error-message"></div>
     <div class="container">
-        <h2>מערכת הצעות מחיר</h2>
-        <div id="error-message"></div>
-
-        <div class="form-row">
+        <div class="column">
+            <h2>מערכת הצעות מחיר</h2>
             <div class="form-group">
-                שם לקוח: <input type="text" id="customerName">
+                <label for="customerName">שם לקוח:</label>
+                <input type="text" id="customerName">
             </div>
             <div class="form-group">
-                טלפון: <input type="tel" id="phone">
-            </div>
-        </div>
-
-        <div class="form-row">
-            <div class="form-group">
-                דוא"ל: <input type="email" id="email">
+                <label for="phone">טלפון:</label>
+                <input type="tel" id="phone">
             </div>
             <div class="form-group">
-                מיקום האירוע: <input type="text" id="eventLocation">
-            </div>
-        </div>
-
-        <div class="form-row">
-            <div class="form-group">
-                כתובת: <input type="text" id="address">
+                <label for="email">דוא"ל:</label>
+                <input type="email" id="email">
             </div>
             <div class="form-group">
-                תאריך: <input type="date" id="date">
-            </div>
-        </div>
-
-        <div class="form-row">
-            <div class="form-group">
-                איש קשר: <input type="text" id="contactPerson">
+                <label for="eventLocation">מיקום האירוע:</label>
+                <input type="text" id="eventLocation">
             </div>
             <div class="form-group">
-                טלפון איש קשר: <input type="tel" id="contactPhone">
+                <label for="address">כתובת:</label>
+                <input type="text" id="address">
             </div>
-        </div>
-
-        <div class="form-row">
             <div class="form-group">
-                סוג תפריט: <select id="menuType"></select>
+                <label for="date">תאריך:</label>
+                <input type="date" id="date">
             </div>
-        </div>
-
-        <div id="menuItems"></div>
-
-        <div class="form-row">
             <div class="form-group">
-                הובלה: <input type="number" id="delivery" value="0">
+                <label for="contactPerson">איש קשר:</label>
+                <input type="text" id="contactPerson">
+            </div>
+            <div class="form-group">
+                <label for="contactPhone">טלפון איש קשר:</label>
+                <input type="tel" id="contactPhone">
+            </div>
+            <div class="form-group">
+                <label for="menuType">סוג תפריט:</label>
+                <select id="menuType"></select>
+            </div>
+            <div class="form-group">
+                <label for="delivery">הובלה:</label>
+                <input type="number" id="delivery" value="0">
             </div>
         </div>
-
-        <div id="summary"></div>
-
-        <div class="form-row">
+        <div class="column">
+            <div id="menuItems"></div>
+            <div id="summary"></div>
             <button onclick="generatePDF()">ייצוא ל-PDF</button>
             <button onclick="generateExcel()">ייצוא ל-Excel</button>
         </div>
@@ -81,9 +71,7 @@
 
     <script>
         const errorMessageElement = document.getElementById('error-message');
-
         const baseUrl = 'https://raw.githubusercontent.com/lyzerl/ofers/main/';
-        
         const files = {
             menuTypes: 'menu.csv',
             priceList: 'pricelist.csv'
@@ -97,8 +85,6 @@
         ]).then(([menuTypesData, priceListData]) => {
             menuTypes = menuTypesData;
             priceList = priceListData;
-            console.log('Loaded menu types:', menuTypes);
-            console.log('Loaded price list:', priceList);
             populateMenuTypes();
             errorMessageElement.textContent = 'הקבצים נטענו בהצלחה!';
         }).catch(error => {
@@ -114,16 +100,12 @@
                     skipEmptyLines: true,
                     complete: function(results) {
                         if (results.errors.length > 0) {
-                            console.error('CSV parsing errors:', results.errors);
                             reject(new Error(`שגיאה בקובץ ${url}: ${results.errors[0].message}`));
                         } else {
-                            console.log('CSV loaded successfully:', url);
-                            console.log('First row:', results.data[0]);
                             resolve(results.data);
                         }
                     },
                     error: function(error) {
-                        console.error('CSV loading error:', error);
                         reject(new Error(`שגיאה בטעינת הקובץ ${url}: ${error}`));
                     }
                 });
@@ -138,38 +120,42 @@
                     option.value = menu['סוג תפריט'];
                     option.textContent = menu['סוג תפריט'];
                     menuTypeSelect.appendChild(option);
-                } else {
-                    console.error('Invalid menu type:', menu);
                 }
             });
             menuTypeSelect.addEventListener('change', populateMenuItems);
-            populateMenuItems(); // Populate items for the initial selection
+            populateMenuItems();
         }
 
         function populateMenuItems() {
             const selectedMenuType = document.getElementById('menuType').value;
             const menuItems = document.getElementById('menuItems');
-            menuItems.innerHTML = '';
+            menuItems.innerHTML = '<h3>פריטי תפריט</h3>';
 
             const selectedMenu = menuTypes.find(menu => menu['סוג תפריט'] === selectedMenuType);
-            if (!selectedMenu) {
-                console.error('Selected menu not found:', selectedMenuType);
-                return;
-            }
+            if (!selectedMenu) return;
 
             const maxPrice = parseFloat(selectedMenu['מחיר למנה']) || Infinity;
 
-            priceList.forEach(item => {
-                if (parseFloat(item['מחיר']) <= maxPrice) {
-                    const itemDiv = document.createElement('div');
-                    itemDiv.innerHTML = `
-                        <input type="checkbox" id="${item['שם מנה']}" name="${item['שם מנה']}" value="${item['מחיר']}">
-                        <label for="${item['שם מנה']}">${item['שם מנה']} - ₪${item['מחיר']}</label>
-                    `;
-                    menuItems.appendChild(itemDiv);
+            const categories = [...new Set(priceList.map(item => item['קטגוריה']))];
+            categories.forEach(category => {
+                const categoryItems = priceList.filter(item => 
+                    item['קטגוריה'] === category && parseFloat(item['מחיר']) <= maxPrice
+                );
+
+                if (categoryItems.length > 0) {
+                    menuItems.innerHTML += `<h4>${category}</h4>`;
+                    categoryItems.forEach(item => {
+                        menuItems.innerHTML += `
+                            <div>
+                                <input type="checkbox" id="${item['שם מנה']}" name="${item['שם מנה']}" value="${item['מחיר']}">
+                                <label for="${item['שם מנה']}">${item['שם מנה']} - ₪${item['מחיר']}</label>
+                            </div>
+                        `;
+                    });
                 }
             });
 
+            menuItems.addEventListener('change', updateSummary);
             updateSummary();
         }
 
@@ -194,7 +180,6 @@
         }
 
         document.getElementById('delivery').addEventListener('input', updateSummary);
-        document.getElementById('menuItems').addEventListener('change', updateSummary);
 
         function generatePDF() {
             alert('פונקציונליות ייצוא ל-PDF תתווסף בהמשך');
