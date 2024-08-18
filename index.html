@@ -34,7 +34,6 @@
         const errorMessageElement = document.getElementById('error-message');
         const contentElement = document.getElementById('content');
 
-        // עדכן את ה-URL הזה לפי ה-repository שלך
         const baseUrl = 'https://raw.githubusercontent.com/lyzerl/ofers/main/';
         
         const files = {
@@ -65,12 +64,15 @@
                 Papa.parse(url, {
                     download: true,
                     header: true,
+                    skipEmptyLines: true,
                     complete: function(results) {
+                        console.log('CSV parsing complete:', results);
                         if (results.errors.length > 0) {
                             console.error('CSV parsing errors:', results.errors);
                             reject(new Error(`שגיאה בקובץ ${url}: ${results.errors[0].message}`));
                         } else {
                             console.log('CSV loaded successfully:', url);
+                            console.log('First row:', results.data[0]);
                             resolve(results.data);
                         }
                     },
@@ -85,10 +87,14 @@
         function populateMenuTypes() {
             const menuTypeSelect = document.getElementById('menuType');
             menuTypes.forEach(menu => {
-                const option = document.createElement('option');
-                option.value = menu['סוג תפריט'];
-                option.textContent = menu['סוג תפריט'];
-                menuTypeSelect.appendChild(option);
+                if (menu['סוג תפריט']) {
+                    const option = document.createElement('option');
+                    option.value = menu['סוג תפריט'];
+                    option.textContent = menu['סוג תפריט'];
+                    menuTypeSelect.appendChild(option);
+                } else {
+                    console.error('Invalid menu type:', menu);
+                }
             });
             menuTypeSelect.addEventListener('change', populateMenuItems);
         }
@@ -101,7 +107,6 @@
             // יישום הלוגיקה לעדכון הסיכום יהיה כאן
         }
 
-        // הוסף מאזין אירועים לשדה ההובלה
         document.getElementById('delivery').addEventListener('input', updateSummary);
     </script>
 </body>
