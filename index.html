@@ -6,9 +6,8 @@
     <title>מערכת הצעות מחיר לקייטרינג</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <style>
-        /* סגנונות CSS נשארים ללא שינוי */
+        /* הסגנונות נשארים ללא שינוי */
     </style>
 </head>
 <body>
@@ -24,46 +23,63 @@
         let priceList = {};
 
         // פונקציה לטעינת קובץ CSV
-        function loadCSV(file, callback) {
-            Papa.parse(file, {
-                header: true,
-                dynamicTyping: true,
-                complete: callback
+        async function loadCSV(url) {
+            const response = await fetch(url);
+            const data = await response.text();
+            return parseCSV(data);
+        }
+
+        // פונקציה לפירוק מחרוזת CSV
+        function parseCSV(csv) {
+            const lines = csv.split('\n');
+            const headers = lines[0].split(',');
+            return lines.slice(1).map(line => {
+                const values = line.split(',');
+                return headers.reduce((obj, header, index) => {
+                    obj[header.trim()] = values[index] ? values[index].trim() : '';
+                    return obj;
+                }, {});
             });
         }
 
-        // טעינת קובץ התפריטים
-        loadCSV('menu.csv', function(results) {
-            results.data.forEach(row => {
-                if (row['סוג תפריט']) {
-                    menuTypes[row['סוג תפריט']] = {
-                        salads: row['כמות סלטים'],
-                        starters: row['כמות מנות ראשונות'],
-                        mainDishes: row['כמות מנות עיקריות'],
-                        sideDishes: row['כמות תוספות'],
-                        maxStarterPrice: row['מקסימום מחיר מנה ראשונה'],
-                        maxMainPrice: row['מקסימום מחיר מנה עיקרית'],
-                        maxSidePrice: row['מקסימום מחיר לתוספות'],
-                        maxDessertPrice: row['מחיר מקסימום לקינוח'],
-                        breadRolls: row['כמות לחמניה'],
-                        pricePerPerson: row['מחיר למנה']
-                    };
-                }
-            });
-            loadMenuTypeOptions();
-        });
+        // טעינת הנתונים
+        async function loadData() {
+            try {
+                const menuData = await loadCSV('menu.csv');
+                const priceListData = await loadCSV('pricelist.csv');
 
-        // טעינת קובץ המחירון
-        loadCSV('pricelist.csv', function(results) {
-            results.data.forEach(row => {
-                if (row['קטגוריה'] && row['שם מנה']) {
-                    if (!priceList[row['קטגוריה']]) {
-                        priceList[row['קטגוריה']] = {};
+                menuData.forEach(row => {
+                    if (row['סוג תפריט']) {
+                        menuTypes[row['סוג תפריט']] = {
+                            salads: parseInt(row['כמות סלטים']),
+                            starters: parseInt(row['כמות מנות ראשונות']),
+                            mainDishes: parseInt(row['כמות מנות עיקריות']),
+                            sideDishes: parseInt(row['כמות תוספות']),
+                            maxStarterPrice: parseFloat(row['מקסימום מחיר מנה ראשונה']),
+                            maxMainPrice: parseFloat(row['מקסימום מחיר מנה עיקרית']),
+                            maxSidePrice: parseFloat(row['מקסימום מחיר לתוספות']),
+                            maxDessertPrice: parseFloat(row['מחיר מקסימום לקינוח']),
+                            breadRolls: parseInt(row['כמות לחמניה']),
+                            pricePerPerson: parseFloat(row['מחיר למנה'])
+                        };
                     }
-                    priceList[row['קטגוריה']][row['שם מנה']] = row['מחיר'];
-                }
-            });
-        });
+                });
+
+                priceListData.forEach(row => {
+                    if (row['קטגוריה'] && row['שם מנה']) {
+                        if (!priceList[row['קטגוריה']]) {
+                            priceList[row['קטגוריה']] = {};
+                        }
+                        priceList[row['קטגוריה']][row['שם מנה']] = parseFloat(row['מחיר']) || 0;
+                    }
+                });
+
+                loadMenuTypeOptions();
+            } catch (error) {
+                console.error('Error loading CSV files:', error);
+                alert('אירעה שגיאה בטעינת הנתונים. אנא נסה שוב מאוחר יותר.');
+            }
+        }
 
         // פונקציה לטעינת אפשרויות התפריט
         function loadMenuTypeOptions() {
@@ -171,6 +187,9 @@
         function exportToExcel() {
             // קוד ייצוא ל-Excel
         }
+
+        // טעינת הנתונים בעת טעינת הדף
+        loadData();
     </script>
 </body>
 </html>
