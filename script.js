@@ -37,7 +37,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function updateMenuItems() {
         const menuType = document.getElementById('menuType').value;
         const menuItems = document.getElementById('menuItems');
-        menuItems.innerHTML = '';
+        menuItems.innerHTML = ''; // איפוס התוכן הקודם
 
         if (!menuType) return;
 
