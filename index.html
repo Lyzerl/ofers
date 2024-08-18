@@ -12,12 +12,12 @@
         .form-group { margin-bottom: 10px; }
         label { display: block; }
         input, select { width: 100%; }
+        .menu-category { margin-left: 20px; }
+        .add-item { cursor: pointer; color: blue; }
         #error-message { color: red; font-weight: bold; }
-        #debug { background-color: #f0f0f0; padding: 10px; margin-top: 20px; }
     </style>
 </head>
 <body>
-    <div id="error-message"></div>
     <div class="container">
         <div class="column">
             <h2>מערכת הצעות מחיר</h2>
@@ -57,40 +57,37 @@
                 <label for="menuType">סוג תפריט:</label>
                 <select id="menuType"></select>
             </div>
-            <div class="form-group">
-                <label for="delivery">הובלה:</label>
-                <input type="number" id="delivery" value="0">
-            </div>
+            <div id="menuPrice"></div>
         </div>
         <div class="column">
             <div id="menuItems"></div>
+            <div class="form-group">
+                <label for="delivery">הובלה:</label>
+                <input type="number" id="delivery">
+            </div>
             <div id="summary"></div>
             <button onclick="generatePDF()">ייצוא ל-PDF</button>
             <button onclick="generateExcel()">ייצוא ל-Excel</button>
         </div>
     </div>
-    <div id="debug"></div>
+    <div id="error-message"></div>
 
     <script>
         const errorMessageElement = document.getElementById('error-message');
-        const debugElement = document.getElementById('debug');
         const baseUrl = 'https://raw.githubusercontent.com/lyzerl/ofers/main/';
         const files = {
-            menuTypes: 'menu.csv',
-            priceList: 'pricelist.csv'
+            menus: 'MENUS.csv',
+            priceList: 'PRICE_LIST.csv'
         };
 
-        let menuTypes, priceList;
+        let menus, priceList;
 
         Promise.all([
-            loadCSV(baseUrl + files.menuTypes),
+            loadCSV(baseUrl + files.menus),
             loadCSV(baseUrl + files.priceList)
-        ]).then(([menuTypesData, priceListData]) => {
-            menuTypes = menuTypesData;
+        ]).then(([menusData, priceListData]) => {
+            menus = menusData;
             priceList = priceListData;
-            debugElement.innerHTML += '<p>נתונים נטענו בהצלחה</p>';
-            debugElement.innerHTML += '<p>סוגי תפריטים: ' + JSON.stringify(menuTypes) + '</p>';
-            debugElement.innerHTML += '<p>רשימת מחירים: ' + JSON.stringify(priceList) + '</p>';
             populateMenuTypes();
             errorMessageElement.textContent = 'הקבצים נטענו בהצלחה!';
         }).catch(error => {
@@ -120,77 +117,107 @@
 
         function populateMenuTypes() {
             const menuTypeSelect = document.getElementById('menuType');
-            menuTypes.forEach(menu => {
-                if (menu['סוג תפריט']) {
-                    const option = document.createElement('option');
-                    option.value = menu['סוג תפריט'];
-                    option.textContent = menu['סוג תפריט'];
-                    menuTypeSelect.appendChild(option);
-                }
+            menus.forEach(menu => {
+                const option = document.createElement('option');
+                option.value = menu['סוג תפריט'];
+                option.textContent = menu['סוג תפריט'];
+                menuTypeSelect.appendChild(option);
             });
-            menuTypeSelect.addEventListener('change', populateMenuItems);
-            populateMenuItems(); // Call this to populate items for the initial selection
+            menuTypeSelect.addEventListener('change', updateMenuItems);
+            updateMenuItems();
         }
 
-        function populateMenuItems() {
+        function updateMenuItems() {
             const selectedMenuType = document.getElementById('menuType').value;
             const menuItems = document.getElementById('menuItems');
-            menuItems.innerHTML = '<h3>פריטי תפריט</h3>';
+            const menuPrice = document.getElementById('menuPrice');
+            menuItems.innerHTML = '';
 
-            debugElement.innerHTML += '<p>סוג תפריט נבחר: ' + selectedMenuType + '</p>';
+            const selectedMenu = menus.find(menu => menu['סוג תפריט'] === selectedMenuType);
+            if (!selectedMenu) return;
 
-            const selectedMenu = menuTypes.find(menu => menu['סוג תפריט'] === selectedMenuType);
-            if (!selectedMenu) {
-                debugElement.innerHTML += '<p>לא נמצא תפריט תואם</p>';
-                return;
-            }
+            menuPrice.textContent = `מחיר מנה: ₪${selectedMenu['מחיר למנה']}`;
 
-            const maxPrice = parseFloat(selectedMenu['מחיר למנה']) || Infinity;
-            debugElement.innerHTML += '<p>מחיר מקסימלי למנה: ' + maxPrice + '</p>';
+            const categories = [
+                { name: 'סלטים', quantity: selectedMenu['כמות סלטים'], maxPrice: Infinity },
+                { name: 'מנות ראשונות', quantity: selectedMenu['כמות מנות ראשונות'], maxPrice: selectedMenu['מקסימום מחיר מנה ראשונה'] },
+                { name: 'מנות עיקריות', quantity: selectedMenu['כמות מנות עיקריות'], maxPrice: selectedMenu['מקסימום מחיר מנה עיקרית'] },
+                { name: 'תוספות', quantity: selectedMenu['כמות תוספות'], maxPrice: selectedMenu['מקסימום מחיר לתוספות'] },
+                { name: 'קינוחים', quantity: 1, maxPrice: selectedMenu['מחיר מקסימום לקינוח'] },
+                { name: 'לחמניות', quantity: selectedMenu['כמות לחמניה'], maxPrice: Infinity }
+            ];
 
-            const categories = [...new Set(priceList.map(item => item['קטגוריה']))];
             categories.forEach(category => {
                 const categoryItems = priceList.filter(item => 
-                    item['קטגוריה'] === category && parseFloat(item['מחיר']) <= maxPrice
+                    item['קטגוריה'] === category.name && parseFloat(item['מחיר']) <= category.maxPrice
                 );
 
                 if (categoryItems.length > 0) {
-                    menuItems.innerHTML += `<h4>${category}</h4>`;
-                    categoryItems.forEach(item => {
-                        menuItems.innerHTML += `
-                            <div>
-                                <input type="checkbox" id="${item['שם מנה']}" name="${item['שם מנה']}" value="${item['מחיר']}">
-                                <label for="${item['שם מנה']}">${item['שם מנה']} - ₪${item['מחיר']}</label>
-                            </div>
-                        `;
-                    });
+                    const categoryDiv = document.createElement('div');
+                    categoryDiv.innerHTML = `<h3>${category.name}</h3>`;
+                    menuItems.appendChild(categoryDiv);
+
+                    for (let i = 0; i < category.quantity; i++) {
+                        const select = document.createElement('select');
+                        select.innerHTML = '<option value="">בחר פריט</option>';
+                        categoryItems.forEach(item => {
+                            select.innerHTML += `<option value="${item['מחיר']}">${item['פריט']} - ₪${item['מחיר']}</option>`;
+                        });
+                        select.addEventListener('change', updateSummary);
+                        const itemDiv = document.createElement('div');
+                        itemDiv.className = 'menu-category';
+                        itemDiv.appendChild(select);
+                        menuItems.appendChild(itemDiv);
+                    }
+
+                    const addItemSpan = document.createElement('span');
+                    addItemSpan.textContent = '+ הוסף פריט';
+                    addItemSpan.className = 'add-item';
+                    addItemSpan.onclick = () => addExtraItem(category.name, categoryItems);
+                    menuItems.appendChild(addItemSpan);
                 }
             });
 
-            debugElement.innerHTML += '<p>פריטי תפריט עודכנו</p>';
-            menuItems.addEventListener('change', updateSummary);
+            updateSummary();
+        }
+
+        function addExtraItem(category, items) {
+            const select = document.createElement('select');
+            select.innerHTML = '<option value="">בחר פריט נוסף</option>';
+            items.forEach(item => {
+                select.innerHTML += `<option value="${item['מחיר']}">${item['פריט']} - ₪${item['מחיר']}</option>`;
+            });
+            select.addEventListener('change', updateSummary);
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'menu-category';
+            itemDiv.appendChild(select);
+            document.getElementById('menuItems').appendChild(itemDiv);
             updateSummary();
         }
 
         function updateSummary() {
             const summary = document.getElementById('summary');
-            const selectedItems = document.querySelectorAll('#menuItems input:checked');
+            const selectedItems = document.querySelectorAll('#menuItems select');
             const delivery = parseFloat(document.getElementById('delivery').value) || 0;
+            const menuType = document.getElementById('menuType').value;
+            const selectedMenu = menus.find(menu => menu['סוג תפריט'] === menuType);
             
-            let total = delivery;
+            let total = parseFloat(selectedMenu['מחיר למנה']) + delivery;
             let summaryHTML = '<h3>סיכום הזמנה</h3><ul>';
+            summaryHTML += `<li>מחיר בסיס למנה: ₪${selectedMenu['מחיר למנה']}</li>`;
             
             selectedItems.forEach(item => {
-                const price = parseFloat(item.value);
-                total += price;
-                summaryHTML += `<li>${item.name}: ₪${price}</li>`;
+                if (item.value) {
+                    const price = parseFloat(item.value);
+                    total += price;
+                    summaryHTML += `<li>${item.options[item.selectedIndex].text}</li>`;
+                }
             });
             
             summaryHTML += `<li>הובלה: ₪${delivery}</li>`;
             summaryHTML += `</ul><p>סה"כ: ₪${total}</p>`;
             
             summary.innerHTML = summaryHTML;
-            debugElement.innerHTML += '<p>סיכום עודכן</p>';
         }
 
         document.getElementById('delivery').addEventListener('input', updateSummary);
