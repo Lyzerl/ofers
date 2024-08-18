@@ -94,47 +94,11 @@
         }
 
         function populateMenuItems() {
-            // כאן תהיה הלוגיקה למילוי פריטי התפריט בהתאם לסוג התפריט שנבחר
-            const selectedMenuType = document.getElementById('menuType').value;
-            const menuItems = document.getElementById('menuItems');
-            menuItems.innerHTML = ''; // נקה את הפריטים הקודמים
-
-            const relevantItems = priceList.filter(item => {
-                const menuTypeData = menuTypes.find(menu => menu['סוג תפריט'] === selectedMenuType);
-                return parseFloat(item['מחיר']) <= parseFloat(menuTypeData['מחיר למנה']);
-            });
-
-            relevantItems.forEach(item => {
-                const itemDiv = document.createElement('div');
-                itemDiv.innerHTML = `
-                    <input type="checkbox" id="${item['שם מנה']}" name="${item['שם מנה']}" value="${item['מחיר']}">
-                    <label for="${item['שם מנה']}">${item['שם מנה']} - ₪${item['מחיר']}</label>
-                `;
-                menuItems.appendChild(itemDiv);
-            });
-
-            // עדכן את הסיכום בכל פעם שמשנים את הבחירה
-            updateSummary();
+            // יישום הלוגיקה למילוי פריטי התפריט יהיה כאן
         }
 
         function updateSummary() {
-            const summary = document.getElementById('summary');
-            const selectedItems = document.querySelectorAll('#menuItems input:checked');
-            const delivery = parseFloat(document.getElementById('delivery').value) || 0;
-            
-            let total = delivery;
-            let summaryHTML = '<h3>סיכום הזמנה</h3><ul>';
-            
-            selectedItems.forEach(item => {
-                const price = parseFloat(item.value);
-                total += price;
-                summaryHTML += `<li>${item.name}: ₪${price}</li>`;
-            });
-            
-            summaryHTML += `<li>הובלה: ₪${delivery}</li>`;
-            summaryHTML += `</ul><p>סה"כ: ₪${total}</p>`;
-            
-            summary.innerHTML = summaryHTML;
+            // יישום הלוגיקה לעדכון הסיכום יהיה כאן
         }
 
         // הוסף מאזין אירועים לשדה ההובלה
