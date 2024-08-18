@@ -6,28 +6,54 @@
     <title>מערכת הצעות מחיר</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f0f0f0; }
+        .container { max-width: 800px; margin: 0 auto; background-color: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h1 { color: #333; text-align: center; }
         #error-message { color: red; font-weight: bold; margin: 20px 0; }
         #content { display: none; }
         .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; }
-        input, select { width: 100%; padding: 5px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input, select { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        #menuItems { margin-top: 20px; }
+        #summary { margin-top: 20px; padding: 10px; background-color: #f9f9f9; border-radius: 4px; }
     </style>
 </head>
 <body>
-    <h1>מערכת הצעות מחיר</h1>
-    <div id="error-message"></div>
-    <div id="content">
-        <div class="form-group">
-            <label for="menuType">סוג תפריט:</label>
-            <select id="menuType"></select>
+    <div class="container">
+        <h1>מערכת הצעות מחיר</h1>
+        <div id="error-message"></div>
+        <div id="content">
+            <div class="form-group">
+                <label for="customerName">שם לקוח:</label>
+                <input type="text" id="customerName">
+            </div>
+            <div class="form-group">
+                <label for="phone">טלפון:</label>
+                <input type="tel" id="phone">
+            </div>
+            <div class="form-group">
+                <label for="email">דוא"ל:</label>
+                <input type="email" id="email">
+            </div>
+            <div class="form-group">
+                <label for="eventLocation">מיקום האירוע:</label>
+                <input type="text" id="eventLocation">
+            </div>
+            <div class="form-group">
+                <label for="eventDate">תאריך האירוע:</label>
+                <input type="date" id="eventDate">
+            </div>
+            <div class="form-group">
+                <label for="menuType">סוג תפריט:</label>
+                <select id="menuType"></select>
+            </div>
+            <div id="menuItems"></div>
+            <div class="form-group">
+                <label for="delivery">הובלה:</label>
+                <input type="number" id="delivery" value="0">
+            </div>
+            <div id="summary"></div>
         </div>
-        <div id="menuItems"></div>
-        <div class="form-group">
-            <label for="delivery">הובלה:</label>
-            <input type="number" id="delivery" value="0">
-        </div>
-        <div id="summary"></div>
     </div>
 
     <script>
@@ -63,10 +89,9 @@
             return new Promise((resolve, reject) => {
                 Papa.parse(url, {
                     download: true,
-                    header: false,  // Changed to false
+                    header: true,
                     skipEmptyLines: true,
                     complete: function(results) {
-                        console.log('CSV parsing complete:', results);
                         if (results.errors.length > 0) {
                             console.error('CSV parsing errors:', results.errors);
                             reject(new Error(`שגיאה בקובץ ${url}: ${results.errors[0].message}`));
@@ -87,29 +112,68 @@
         function populateMenuTypes() {
             const menuTypeSelect = document.getElementById('menuType');
             menuTypes.forEach(menu => {
-                if (menu && menu.length > 0) {
+                if (menu['סוג תפריט']) {
                     const option = document.createElement('option');
-                    option.value = menu[0];
-                    option.textContent = menu[0];
+                    option.value = menu['סוג תפריט'];
+                    option.textContent = menu['סוג תפריט'];
                     menuTypeSelect.appendChild(option);
                 } else {
                     console.error('Invalid menu type:', menu);
                 }
             });
             menuTypeSelect.addEventListener('change', populateMenuItems);
+            populateMenuItems(); // Populate items for the initial selection
         }
 
         function populateMenuItems() {
-            // יישום הלוגיקה למילוי פריטי התפריט יהיה כאן
-            console.log('populateMenuItems called');
+            const selectedMenuType = document.getElementById('menuType').value;
+            const menuItems = document.getElementById('menuItems');
+            menuItems.innerHTML = '';
+
+            const selectedMenu = menuTypes.find(menu => menu['סוג תפריט'] === selectedMenuType);
+            if (!selectedMenu) {
+                console.error('Selected menu not found:', selectedMenuType);
+                return;
+            }
+
+            const maxPrice = parseFloat(selectedMenu['מחיר למנה']) || Infinity;
+
+            priceList.forEach(item => {
+                if (parseFloat(item['מחיר']) <= maxPrice) {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.innerHTML = `
+                        <input type="checkbox" id="${item['שם מנה']}" name="${item['שם מנה']}" value="${item['מחיר']}">
+                        <label for="${item['שם מנה']}">${item['שם מנה']} - ₪${item['מחיר']}</label>
+                    `;
+                    menuItems.appendChild(itemDiv);
+                }
+            });
+
+            updateSummary();
         }
 
         function updateSummary() {
-            // יישום הלוגיקה לעדכון הסיכום יהיה כאן
-            console.log('updateSummary called');
+            const summary = document.getElementById('summary');
+            const selectedItems = document.querySelectorAll('#menuItems input:checked');
+            const delivery = parseFloat(document.getElementById('delivery').value) || 0;
+            
+            let total = delivery;
+            let summaryHTML = '<h3>סיכום הזמנה</h3><ul>';
+            
+            selectedItems.forEach(item => {
+                const price = parseFloat(item.value);
+                total += price;
+                summaryHTML += `<li>${item.name}: ₪${price}</li>`;
+            });
+            
+            summaryHTML += `<li>הובלה: ₪${delivery}</li>`;
+            summaryHTML += `</ul><p>סה"כ: ₪${total}</p>`;
+            
+            summary.innerHTML = summaryHTML;
         }
 
         document.getElementById('delivery').addEventListener('input', updateSummary);
+        document.getElementById('menuItems').addEventListener('change', updateSummary);
     </script>
 </body>
 </html>
