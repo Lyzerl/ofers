@@ -58,6 +58,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 const categoryItems = priceListData.filter(item => item[0] === category.name);
                 console.log(`Items for category ${category.name}:`, categoryItems); // לוג לבדוק את הפריטים בקטגוריה
 
+                if (categoryItems.length === 0) {
+                    console.warn(`No items found for category ${category.name}`);
+                }
+
                 const categoryDiv = document.createElement('div');
                 categoryDiv.className = 'category';
 
@@ -87,6 +91,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     select.appendChild(defaultOption);
 
                     categoryItems.forEach(item => {
+                        console.log(`Adding option: ${item[1]} - ₪${item[2]} for category ${category.name}`);
                         const option = document.createElement('option');
                         option.value = JSON.stringify({name: item[1], price: item[2]});
                         option.textContent = `${item[1]} - ₪${item[2]}`;
