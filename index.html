@@ -13,10 +13,12 @@
     <script>
         let menuTypes, priceList;
 
+        const baseUrl = 'https://raw.githubusercontent.com/lyzerl/ofers/main/';
+        
         // Load data from CSV files
         Promise.all([
-            loadCSV(encodeURIComponent('סוגי תפריטים.csv')),
-            loadCSV(encodeURIComponent('מחירון ללקוחות.csv'))
+            loadCSV(baseUrl + encodeURIComponent('סוגי תפריטים.csv')),
+            loadCSV(baseUrl + encodeURIComponent('מחירון ללקוחות.csv'))
         ]).then(([menuTypesData, priceListData]) => {
             menuTypes = menuTypesData;
             priceList = priceListData;
@@ -27,20 +29,23 @@
             document.getElementById('error-message').textContent = 'שגיאה בטעינת הקבצים: ' + error.message;
         });
 
-        function loadCSV(filename) {
+        function loadCSV(url) {
             return new Promise((resolve, reject) => {
-                Papa.parse(filename, {
+                Papa.parse(url, {
                     download: true,
                     header: true,
                     complete: function(results) {
                         if (results.errors.length > 0) {
-                            reject(new Error(`שגיאה בקובץ ${filename}: ${results.errors[0].message}`));
+                            console.error('CSV parsing errors:', results.errors);
+                            reject(new Error(`שגיאה בקובץ ${url}: ${results.errors[0].message}`));
                         } else {
+                            console.log('CSV loaded successfully:', url);
                             resolve(results.data);
                         }
                     },
                     error: function(error) {
-                        reject(new Error(`שגיאה בטעינת הקובץ ${filename}: ${error}`));
+                        console.error('CSV loading error:', error);
+                        reject(new Error(`שגיאה בטעינת הקובץ ${url}: ${error}`));
                     }
                 });
             });
