@@ -114,7 +114,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const select = document.createElement('select');
         select.name = `${category}_extra`;
         select.onchange = calculateTotal;
-        
         const defaultOption = document.createElement('option');
         defaultOption.value = '';
         defaultOption.textContent = `בחר ${category} נוסף`;
