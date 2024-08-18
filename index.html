@@ -1,44 +1,52 @@
 <!DOCTYPE html>
-   <html lang="he" dir="rtl">
-   <head>
-       <meta charset="UTF-8">
-       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-       <title>מערכת הצעות מחיר</title>
-       <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
-       <!-- השאר הקוד נשאר ללא שינוי -->
-   </head>
-   <body>
-       <!-- תוכן ה-HTML נשאר ללא שינוי -->
-       <script>
-           let menuTypes, priceList;
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>מערכת הצעות מחיר</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <!-- שאר ה-head נשאר ללא שינוי -->
+</head>
+<body>
+    <!-- תוכן ה-HTML נשאר ללא שינוי -->
+    <div id="error-message" style="color: red;"></div>
+    <script>
+        let menuTypes, priceList;
 
-           // Load data from CSV files
-           Promise.all([
-               loadCSV(encodeURIComponent('סוגי תפריטים.csv')),
-               loadCSV(encodeURIComponent('מחירון ללקוחות.csv'))
-           ]).then(([menuTypesData, priceListData]) => {
-               menuTypes = menuTypesData;
-               priceList = priceListData;
-               populateMenuTypes();
-               populateMenuItems();
-           }).catch(error => console.error('Error loading CSV files:', error));
+        // Load data from CSV files
+        Promise.all([
+            loadCSV('סוגי תפריטים.csv'),
+            loadCSV('מחירון ללקוחות.csv')
+        ]).then(([menuTypesData, priceListData]) => {
+            menuTypes = menuTypesData;
+            priceList = priceListData;
+            populateMenuTypes();
+            populateMenuItems();
+        }).catch(error => {
+            console.error('Error loading CSV files:', error);
+            document.getElementById('error-message').textContent = 'שגיאה בטעינת הקבצים: ' + error.message;
+        });
 
-           function loadCSV(filename) {
-               return new Promise((resolve, reject) => {
-                   Papa.parse(filename, {
-                       download: true,
-                       header: true,
-                       complete: function(results) {
-                           resolve(results.data);
-                       },
-                       error: function(error) {
-                           reject(error);
-                       }
-                   });
-               });
-           }
+        function loadCSV(filename) {
+            return new Promise((resolve, reject) => {
+                Papa.parse(filename, {
+                    download: true,
+                    header: true,
+                    complete: function(results) {
+                        if (results.errors.length > 0) {
+                            reject(new Error(`שגיאה בקובץ ${filename}: ${results.errors[0].message}`));
+                        } else {
+                            resolve(results.data);
+                        }
+                    },
+                    error: function(error) {
+                        reject(new Error(`שגיאה בטעינת הקובץ ${filename}: ${error.message}`));
+                    }
+                });
+            });
+        }
 
-           // שאר הפונקציות נשארות ללא שינוי
-       </script>
-   </body>
-   </html>
+        // שאר הפונקציות נשארות ללא שינוי
+    </script>
+</body>
+</html>
