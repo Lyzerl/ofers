@@ -1,82 +1,15 @@
 <!DOCTYPE html>
-<html lang="he" dir="rtl">
+<html dir="rtl" lang="he">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>מערכת הצעות מחיר לקייטרינג</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            margin: 0;
-            padding: 20px;
-            background-color: #f4f4f4;
-        }
-        .container {
-            max-width: 800px;
-            margin: auto;
-            background: white;
-            padding: 20px;
-            border-radius: 5px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-        }
-        h2 {
-            color: #333;
-            text-align: center;
-        }
-        .form-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 15px;
-        }
-        .form-group {
-            flex: 1;
-            margin-right: 10px;
-        }
-        .form-group:last-child {
-            margin-right: 0;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-        input, select {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-        button {
-            background-color: #4CAF50;
-            color: white;
-            padding: 10px 15px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            margin-right: 10px;
-        }
-        button:hover {
-            background-color: #45a049;
-        }
-        #menuItems, #summary {
-            margin-top: 20px;
-        }
-        @media (max-width: 600px) {
-            .form-row {
-                flex-direction: column;
-            }
-            .form-group {
-                margin-right: 0;
-                margin-bottom: 10px;
-            }
-        }
-    </style>
+    <title>מערכת הצעות מחיר</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="container">
         <h2>מערכת הצעות מחיר</h2>
+        
         <form id="quoteForm">
             <div class="form-row">
                 <div class="form-group">
@@ -84,44 +17,44 @@
                     <input type="text" id="customerName" required>
                 </div>
                 <div class="form-group">
-                    <label for="customerPhone">טלפון:</label>
-                    <input type="tel" id="customerPhone" required>
+                    <label for="phone">טלפון:</label>
+                    <input type="tel" id="phone" required>
                 </div>
             </div>
-
+            
             <div class="form-row">
                 <div class="form-group">
-                    <label for="customerEmail">דוא"ל:</label>
-                    <input type="email" id="customerEmail" required>
+                    <label for="email">דוא"ל:</label>
+                    <input type="email" id="email" required>
                 </div>
                 <div class="form-group">
                     <label for="eventLocation">מיקום האירוע:</label>
                     <input type="text" id="eventLocation" required>
                 </div>
             </div>
-
+            
             <div class="form-row">
                 <div class="form-group">
-                    <label for="customerAddress">כתובת:</label>
-                    <input type="text" id="customerAddress" required>
+                    <label for="address">כתובת:</label>
+                    <input type="text" id="address" required>
                 </div>
                 <div class="form-group">
-                    <label for="eventDate">תאריך:</label>
-                    <input type="date" id="eventDate" required>
+                    <label for="date">תאריך:</label>
+                    <input type="date" id="date" required>
                 </div>
             </div>
-
+            
             <div class="form-row">
                 <div class="form-group">
                     <label for="contactPerson">איש קשר:</label>
-                    <input type="text" id="contactPerson">
+                    <input type="text" id="contactPerson" required>
                 </div>
                 <div class="form-group">
                     <label for="contactPhone">טלפון איש קשר:</label>
-                    <input type="tel" id="contactPhone">
+                    <input type="tel" id="contactPhone" required>
                 </div>
             </div>
-
+            
             <div class="form-row">
                 <div class="form-group">
                     <label for="menuType">סוג תפריט:</label>
@@ -130,114 +63,29 @@
                     </select>
                 </div>
             </div>
-
+            
             <div id="menuItems">
-                <!-- פריטי התפריט יתווספו כאן באמצעות JavaScript -->
+                <!-- פריטי התפריט יתווספו דינמית -->
             </div>
-
+            
             <div class="form-row">
                 <div class="form-group">
-                    <label for="deliveryPrice">הובלה:</label>
-                    <input type="number" id="deliveryPrice" min="0" step="0.01">
+                    <label for="delivery">הובלה:</label>
+                    <input type="number" id="delivery" min="0" onchange="calculateTotal()">
                 </div>
             </div>
-
+            
             <div id="summary">
-                <!-- סיכום ההזמנה יתווסף כאן באמצעות JavaScript -->
+                <!-- סיכום ההזמנה יתווסף דינמית -->
             </div>
-
+            
             <div class="form-row">
-                <button type="button" id="exportPDF">ייצוא ל-PDF</button>
-                <button type="button" id="exportExcel">ייצוא ל-Excel</button>
+                <button type="button" onclick="generatePDF()">ייצוא ל-PDF</button>
+                <button type="button" onclick="generateExcel()">ייצוא ל-Excel</button>
             </div>
         </form>
     </div>
 
-    <script>
-        // נתוני התפריטים והמחירון
-        const menuData = [
-            {
-                "סוג תפריט": "בסיסי",
-                "כמות סלטים": "5",
-                "כמות מנות ראשונות": "1",
-                "מקסימום מחיר מנה ראשונה": "10",
-                "כמות מנות עיקריות": "1",
-                "מקסימום מחיר מנה עיקרית": "10",
-                "כמות תוספות": "3",
-                "מקסימום מחיר לתוספות": "2.5",
-                "מחיר מקסימום לקינוח": "0",
-                "כמות לחמניה": "1",
-                "מחיר למנה": "55"
-            },
-            {
-                "סוג תפריט": "משודרג",
-                "כמות סלטים": "8",
-                "כמות מנות ראשונות": "1",
-                "מקסימום מחיר מנה ראשונה": "10",
-                "כמות מנות עיקריות": "2",
-                "מקסימום מחיר מנה עיקרית": "10",
-                "כמות תוספות": "3",
-                "מקסימום מחיר לתוספות": "2.5",
-                "מחיר מקסימום לקינוח": "1",
-                "כמות לחמניה": "1",
-                "מחיר למנה": "65"
-            },
-            {
-                "סוג תפריט": "דלוקס",
-                "כמות סלטים": "12",
-                "כמות מנות ראשונות": "2",
-                "מקסימום מחיר מנה ראשונה": "10",
-                "כמות מנות עיקריות": "2",
-                "מקסימום מחיר מנה עיקרית": "14",
-                "כמות תוספות": "5",
-                "מקסימום מחיר לתוספות": "2.5",
-                "מחיר מקסימום לקינוח": "1.5",
-                "כמות לחמניה": "1",
-                "מחיר למנה": "95"
-            }
-        ];
-
-        const pricelistData = [
-            {"קטגוריה":"מנה ראשונה","שם מנה":"בורקס ברוטב","מחיר":""},
-            {"קטגוריה":"מנה ראשונה","שם מנה":"בלינצס ברוטב ","מחיר":""},
-            {"קטגוריה":"מנה ראשונה","שם מנה":"פחזנית","מחיר":"2"},
-            {"קטגוריה":"מנה ראשונה","שם מנה":"דג מושט","מחיר":"8"},
-            {"קטגוריה":"מנה ראשונה","שם מנה":"דג סלמון ","מחיר":"16"},
-            {"קטגוריה":"מנה ראשונה","שם מנה":"מוסקה בשרי","מחיר":"5"},
-            {"קטגוריה":"מנה ראשונה","שם מנה":"מוסקה פרווה ","מחיר":"4"},
-            {"קטגוריה":"סלטים ","שם מנה":"חומוס","מחיר":"1.1"},
-            {"קטגוריה":"סלטים ","שם מנה":"חציל קלוי","מחיר":"1.1"},
-            {"קטגוריה":"סלטים ","שם מנה":"ירקות כבושים","מחיר":"1.1"},
-            {"קטגוריה":"סלטים ","שם מנה":"סלק","מחיר":"1.1"},
-            {"קטגוריה":"סלטים ","שם מנה":"טחינה","מחיר":"1.1"},
-            {"קטגוריה":"סלטים ","שם מנה":"חציל בתחמיץ","מחיר":"1.1"},
-            {"קטגוריה":"סלטים ","שם מנה":"מטבוחה","מחיר":"1.1"},
-            {"קטגוריה":"סלטים ","שם מנה":"עגבניות ערבי","מחיר":"1.1"},
-            {"קטגוריה":"סלטים ","שם מנה":"חומוס+ טחינה","מחיר":"1.1"},
-            {"קטגוריה":"סלטים ","שם מנה":"חציל רומני","מחיר":"1.1"},
-            {"קטגוריה":"סלטים ","שם מנה":"מטבוחה+ זיתים","מחיר":"1.1"},
-            {"קטגוריה":"סלטים ","שם מנה":"תפו\"א","מחיר":"1.1"},
-            {"קטגוריה":"סלטים ","שם מנה":"גזר חי","מחיר":"1.1"},
-            {"קטגוריה":"סלטים ","שם מנה":"חציל פיקנטי","מחיר":"1.1"},
-            {"קטגוריה":"סלטים ","שם מנה":"מטבוחה חריפה","מחיר":"1.1"},
-            {"קטגוריה":"סלטים ","שם מנה":"תירס","מחיר":"1.1"},
-            {"קטגוריה":"סלטים ","שם מנה":"גזר מרוקאי","מחיר":"1.1"},
-            {"קטגוריה":"סלטים ","שם מנה":"חציל בטחינה","מחיר":"1.1"},
-            {"קטגוריה":"סלטים ","שם מנה":"סלט עלים","מחיר":"1.1"},
-            {"קטגוריה":"סלטים ","שם מנה":"פלפל מטוגן","מחיר":"1.1"},
-            {"קטגוריה":"סלטים ","שם מנה":"כרוב וגזר","מחיר":"1.1"},
-            {"קטגוריה":"סלטים ","שם מנה":"חסה+ שרי","מחיר":"1.1"},
-            {"קטגוריה":"סלטים ","שם מנה":"סלט ישראלי","מחיר":"1.1"},
-            {"קטגוריה":"סלטים ","שם מנה":"פלפל חריף","מחיר":"1.1"},
-            {"קטגוריה":"סלטים ","שם מנה":"כרוב סגול","מחיר":"1.1"},
-            {"קטגוריה":"מנה עיקרית ","שם מנה":"כרעיים","מחיר":"10"},
-            {"קטגוריה":"מנה עיקרית ","שם מנה":"סטיק עוף","מחיר":"10"},
-            {"קטגוריה":"מנה עיקרית ","שם מנה":"שניצל מטוגן","מחיר":"12"},
-            {"קטגוריה":"מנה עיקרית ","שם מנה":"רולדה ","מחיר":"12"},
-            {"קטגוריה":"מנה עיקרית ","שם מנה":"רולדה בקר","מחיר":"14"},
-            {"קטגוריה":"מנה עיקרית ","שם מנה":"פרגית","מחיר":"14"},
-            {"קטגוריה":"מנה עיקרית ","שם מנה":"שיפוד משודרג ","מחיר":"14"},
-            {"קטגוריה":"מנה עיקרית ","שם מנה":"בשר  מס 5","מחיר":"18"},
-            {"קטגוריה":"מנה עיקרית ","שם מנה":"אסאדו","מחיר":"18"},
-            {"קטגוריה":"מנה עיקרית ","שם מנה":"בשר מס 4","מחיר":"18"},
-            {"קטגוריה":"תוספות ","שם מנה":"אורז+ חמוציות תפו\"א+ בטטה אפונה","מחיר
+    <script src="script.js"></script>
+</body>
+</html>
