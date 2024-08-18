@@ -142,7 +142,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const selectedMenu = menuData.find(row => row[0] === menuType);
         if (!selectedMenu) return;
 
-        let basePrice = selectedMenu[10] || 0;  // מחיר בסיס לתפריט
+        let basePrice = parseFloat(selectedMenu[10]) || 0;  // מחיר בסיס לתפריט
         let additionalPrice = 0;
 
         const selects = document.querySelectorAll('#menuItems select');
@@ -207,4 +207,4 @@ document.addEventListener('DOMContentLoaded', function() {
 
         return formData;
     }
-}); // Closing the DOMContentLoaded event listener function
+});
