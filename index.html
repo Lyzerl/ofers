@@ -13,6 +13,7 @@
         label { display: block; }
         input, select { width: 100%; }
         #error-message { color: red; font-weight: bold; }
+        #debug { background-color: #f0f0f0; padding: 10px; margin-top: 20px; }
     </style>
 </head>
 <body>
@@ -68,9 +69,11 @@
             <button onclick="generateExcel()">ייצוא ל-Excel</button>
         </div>
     </div>
+    <div id="debug"></div>
 
     <script>
         const errorMessageElement = document.getElementById('error-message');
+        const debugElement = document.getElementById('debug');
         const baseUrl = 'https://raw.githubusercontent.com/lyzerl/ofers/main/';
         const files = {
             menuTypes: 'menu.csv',
@@ -85,6 +88,9 @@
         ]).then(([menuTypesData, priceListData]) => {
             menuTypes = menuTypesData;
             priceList = priceListData;
+            debugElement.innerHTML += '<p>נתונים נטענו בהצלחה</p>';
+            debugElement.innerHTML += '<p>סוגי תפריטים: ' + JSON.stringify(menuTypes) + '</p>';
+            debugElement.innerHTML += '<p>רשימת מחירים: ' + JSON.stringify(priceList) + '</p>';
             populateMenuTypes();
             errorMessageElement.textContent = 'הקבצים נטענו בהצלחה!';
         }).catch(error => {
@@ -123,7 +129,7 @@
                 }
             });
             menuTypeSelect.addEventListener('change', populateMenuItems);
-            populateMenuItems();
+            populateMenuItems(); // Call this to populate items for the initial selection
         }
 
         function populateMenuItems() {
@@ -131,10 +137,16 @@
             const menuItems = document.getElementById('menuItems');
             menuItems.innerHTML = '<h3>פריטי תפריט</h3>';
 
+            debugElement.innerHTML += '<p>סוג תפריט נבחר: ' + selectedMenuType + '</p>';
+
             const selectedMenu = menuTypes.find(menu => menu['סוג תפריט'] === selectedMenuType);
-            if (!selectedMenu) return;
+            if (!selectedMenu) {
+                debugElement.innerHTML += '<p>לא נמצא תפריט תואם</p>';
+                return;
+            }
 
             const maxPrice = parseFloat(selectedMenu['מחיר למנה']) || Infinity;
+            debugElement.innerHTML += '<p>מחיר מקסימלי למנה: ' + maxPrice + '</p>';
 
             const categories = [...new Set(priceList.map(item => item['קטגוריה']))];
             categories.forEach(category => {
@@ -155,6 +167,7 @@
                 }
             });
 
+            debugElement.innerHTML += '<p>פריטי תפריט עודכנו</p>';
             menuItems.addEventListener('change', updateSummary);
             updateSummary();
         }
@@ -177,6 +190,7 @@
             summaryHTML += `</ul><p>סה"כ: ₪${total}</p>`;
             
             summary.innerHTML = summaryHTML;
+            debugElement.innerHTML += '<p>סיכום עודכן</p>';
         }
 
         document.getElementById('delivery').addEventListener('input', updateSummary);
