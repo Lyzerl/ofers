@@ -1,6 +1,5 @@
 document.addEventListener('DOMContentLoaded', function() {
     let menuData, priceListData;
-
     // טעינת קובץ ה-menu.csv
     fetch('menu.csv')
         .then(response => response.text())
@@ -9,7 +8,6 @@ document.addEventListener('DOMContentLoaded', function() {
             populateMenuTypes();
             console.log("Menu Data Loaded:", menuData); // לוג לבדוק טעינה של menu.csv
         });
-
     // טעינת קובץ ה-pricelist.csv
     fetch('pricelist.csv')
         .then(response => response.text())
@@ -17,11 +15,9 @@ document.addEventListener('DOMContentLoaded', function() {
             priceListData = parseCSV(text);
             console.log("Price List Data Loaded:", priceListData); // לוג לבדוק טעינה של pricelist.csv
         });
-
     function parseCSV(text) {
         return text.trim().split('\n').map(row => row.split(','));
     }
-
     function populateMenuTypes() {
         const select = document.getElementById('menuType');
         select.innerHTML = '<option value="">בחר תפריט</option>';
@@ -33,17 +29,13 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         document.getElementById('menuType').addEventListener('change', updateMenuItems);
     }
-
     function updateMenuItems() {
         const menuType = document.getElementById('menuType').value;
         const menuItems = document.getElementById('menuItems');
         menuItems.innerHTML = ''; // איפוס התוכן הקודם
-
         if (!menuType) return;
-
         const selectedMenu = menuData.find(row => row[0] === menuType);
         console.log("Selected Menu:", selectedMenu); // לוג לבדוק את התפריט שנבחר
-
         const categories = [
             { name: 'סלטים', count: parseInt(selectedMenu[1]) },
             { name: 'מנות ראשונות', count: parseInt(selectedMenu[2]) },
@@ -52,44 +44,34 @@ document.addEventListener('DOMContentLoaded', function() {
             { name: 'קינוחים', count: 1 },
             { name: 'לחמניות', count: parseInt(selectedMenu[9]) }
         ];
-
         categories.forEach(category => {
             if (category.count > 0) { // יצירת תיבות בחירה רק אם יש count חיובי
                 const categoryItems = priceListData.filter(item => item[0].trim() === category.name.trim());
                 console.log(`Items for category ${category.name}:`, categoryItems); // לוג לבדוק את הפריטים בקטגוריה
-
                 if (categoryItems.length === 0) {
                     console.warn(`No items found for category ${category.name}`);
                 }
-
                 const categoryDiv = document.createElement('div');
                 categoryDiv.className = 'category';
-
                 const categoryTitle = document.createElement('div');
                 categoryTitle.className = 'category-title';
                 categoryTitle.textContent = category.name;
                 categoryDiv.appendChild(categoryTitle);
-
                 const categoryItemsDiv = document.createElement('div');
                 categoryItemsDiv.className = 'category-items';
-
                 for (let i = 0; i < category.count; i++) {
                     const formGroup = document.createElement('div');
                     formGroup.className = 'form-group';
-
                     const label = document.createElement('label');
                     label.textContent = `${category.name} ${i + 1}:`;
-
                     const select = document.createElement('select');
                     select.name = `${category.name}_${i}`;
                     select.required = true;
                     select.onchange = calculateTotal;
-
                     const defaultOption = document.createElement('option');
                     defaultOption.value = '';
                     defaultOption.textContent = `בחר ${category.name}`;
                     select.appendChild(defaultOption);
-
                     categoryItems.forEach(item => {
                         console.log(`Adding option: ${item[1]} - ₪${item[2]} for category ${category.name}`);
                         const option = document.createElement('option');
@@ -97,30 +79,23 @@ document.addEventListener('DOMContentLoaded', function() {
                         option.textContent = `${item[1]} - ₪${item[2]}`;
                         select.appendChild(option);
                     });
-
                     formGroup.appendChild(label);
                     formGroup.appendChild(select);
                     categoryItemsDiv.appendChild(formGroup);
                 }
-
                 categoryDiv.appendChild(categoryItemsDiv);
                 menuItems.appendChild(categoryDiv);
             }
         });
-
         calculateTotal();
     }
-
     function calculateTotal() {
         const menuType = document.getElementById('menuType').value;
         if (!menuType) return;
-
         const selectedMenu = menuData.find(row => row[0] === menuType);
         if (!selectedMenu) return;
-
         let basePrice = parseFloat(selectedMenu[10]) || 0;  // מחיר בסיס לתפריט
         let additionalPrice = 0;
-
         const selects = document.querySelectorAll('#menuItems select');
         selects.forEach(select => {
             if (select.value) {
@@ -130,11 +105,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         });
-
         const deliveryPrice = parseFloat(document.getElementById('delivery').value) || 0;
-
         const totalPrice = basePrice + additionalPrice + deliveryPrice;
-
         const summary = document.getElementById('summary');
         summary.innerHTML = `
             <p>מחיר בסיס לתפריט: ₪${basePrice.toFixed(2)}</p>
