@@ -1,196 +1,361 @@
+בוודאי! להלן הקוד המעודכן עם שימוש ב-URL יחסי לטעינת קבצי ה-CSV, בהתחשב בכך שהכל יושב באותו ריפוזיטורי:
+
+```html
 <!DOCTYPE html>
-<html lang="he" dir="rtl">
+<html dir="rtl" lang="he">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>מערכת הצעות מחיר לקייטרינג</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <title>מערכת הצעות מחיר</title>
     <style>
-        /* Styles remain unchanged */
+        body { 
+            font-family: Arial, sans-serif; 
+            text-align: right;
+            font-size: 14px;
+        }
+        .container { 
+            max-width: 800px; 
+            margin: 0 auto; 
+            padding: 10px; 
+        }
+        .form-row {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .form-group { 
+            display: flex;
+            align-items: center;
+            width: 48%;
+            margin-bottom: 5px;
+        }
+        label { 
+            width: 120px;
+            margin-left: 10px;
+        }
+        input, select { 
+            width: calc(100% - 130px);
+            padding: 5px; 
+        }
+        button { 
+            padding: 5px 10px; 
+            background-color: #4CAF50; 
+            color: white; 
+            border: none; 
+            cursor: pointer; 
+            margin-right: 5px;
+        }
+        button:hover { 
+            background-color: #45a049; 
+        }
+        #menuItems .category {
+            margin-bottom: 15px;
+        }
+        #menuItems .category-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        #menuItems .category-items {
+            margin-right: 20px;
+        }
+        #summary {
+            margin-top: 20px;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>מערכת הצעות מחיר לקייטרינג</h1>
+        <h2>מערכת הצעות מחיר</h2>
+        
         <form id="quoteForm">
-            <!-- Form fields remain unchanged -->
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="customerName">שם לקוח:</label>
+                    <input type="text" id="customerName" required>
+                </div>
+                <div class="form-group">
+                    <label for="phone">טלפון:</label>
+                    <input type="tel" id="phone" required>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="email">דוא"ל:</label>
+                    <input type="email" id="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="eventLocation">מיקום האירוע:</label>
+                    <input type="text" id="eventLocation" required>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="address">כתובת:</label>
+                    <input type="text" id="address" required>
+                </div>
+                <div class="form-group">
+                    <label for="date">תאריך:</label>
+                    <input type="date" id="date" required>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="contactPerson">איש קשר:</label>
+                    <input type="text" id="contactPerson" required>
+                </div>
+                <div class="form-group">
+                    <label for="contactPhone">טלפון איש קשר:</label>
+                    <input type="tel" id="contactPhone" required>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="menuType">סוג תפריט:</label>
+                    <select id="menuType" required>
+                        <option value="">בחר תפריט</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div id="menuItems">
+                <!-- פריטי התפריט יתווספו דינמית -->
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="delivery">הובלה:</label>
+                    <input type="number" id="delivery" min="0" onchange="calculateTotal()">
+                </div>
+            </div>
+            
+            <div id="summary">
+                <!-- סיכום ההזמנה יתווסף דינמית -->
+            </div>
+            
+            <div class="form-row">
+                <button type="button" onclick="generatePDF()">ייצוא ל-PDF</button>
+                <button type="button" onclick="generateExcel()">ייצוא ל-Excel</button>
+            </div>
         </form>
     </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            let menuTypes = {};
-            let priceList = {};
+            let menuData, priceListData;
 
-            // Function to load CSV file
-            async function loadCSV(url) {
-                const response = await fetch(url);
-                const data = await response.text();
-                return parseCSV(data);
-            }
-
-            // Function to parse CSV string
-            function parseCSV(csv) {
-                const lines = csv.split('\n');
-                const headers = lines[0].split(',');
-                return lines.slice(1).map(line => {
-                    const values = line.split(',');
-                    return headers.reduce((obj, header, index) => {
-                        obj[header.trim()] = values[index] ? values[index].trim() : '';
-                        return obj;
-                    }, {});
+            // טעינת קבצי CSV מ-GitHub באמצעות URL יחסי
+            fetch('menu.csv')
+                .then(response => response.text())
+                .then(text => {
+                    menuData = parseCSV(text);
+                    populateMenuTypes();
                 });
+
+            fetch('pricelist.csv')
+                .then(response => response.text())
+                .then(text => {
+                    priceListData = parseCSV(text);
+                });
+
+            function parseCSV(text) {
+                return text.trim().split('\n').map(row => row.split(','));
             }
 
-            // Loading data
-            async function loadData() {
-                try {
-                    const menuData = await loadCSV('menu.csv');
-                    const priceListData = await loadCSV('pricelist.csv');
-
-                    menuData.forEach(row => {
-                        if (row['סוג תפריט']) {
-                            menuTypes[row['סוג תפריט']] = {
-                                salads: parseInt(row['כמות סלטים']),
-                                starters: parseInt(row['כמות מנות ראשונות']),
-                                mainDishes: parseInt(row['כמות מנות עיקריות']),
-                                sideDishes: parseInt(row['כמות תוספות']),
-                                maxStarterPrice: parseFloat(row['מקסימום מחיר מנה ראשונה']),
-                                maxMainPrice: parseFloat(row['מקסימום מחיר מנה עיקרית']),
-                                maxSidePrice: parseFloat(row['מקסימום מחיר לתוספות']),
-                                maxDessertPrice: parseFloat(row['מחיר מקסימום לקינוח']),
-                                breadRolls: parseInt(row['כמות לחמניה']),
-                                pricePerPerson: parseFloat(row['מחיר למנה'])
-                            };
-                        }
-                    });
-
-                    priceListData.forEach(row => {
-                        if (row['קטגוריה'] && row['שם מנה']) {
-                            if (!priceList[row['קטגוריה']]) {
-                                priceList[row['קטגוריה']] = {};
-                            }
-                            priceList[row['קטגוריה']][row['שם מנה']] = parseFloat(row['מחיר']) || 0;
-                        }
-                    });
-
-                    loadMenuTypeOptions();
-                } catch (error) {
-                    console.error('Error loading CSV files:', error);
-                    alert('אירעה שגיאה בטעינת הנתונים. אנא נסה שוב מאוחר יותר.');
-                }
-            }
-
-            // Function to load menu type options
-            function loadMenuTypeOptions() {
-                const menuTypeSelect = document.getElementById('menuType');
-                menuTypeSelect.innerHTML = '<option value="">בחר תפריט</option>';
-                for (const type in menuTypes) {
+            function populateMenuTypes() {
+                const select = document.getElementById('menuType');
+                select.innerHTML = '<option value="">בחר תפריט</option>'; // Reset options
+                menuData.forEach(row => {
                     const option = document.createElement('option');
-                    option.value = type;
-                    option.textContent = type;
-                    menuTypeSelect.appendChild(option);
-                }
+                    option.value = row[0];
+                    option.textContent = row[0];
+                    select.appendChild(option);
+                });
+                document.getElementById('menuType').addEventListener('change', updateMenuItems);
             }
 
-            // Function to load menu items
-            function loadMenuItems() {
+            function updateMenuItems() {
                 const menuType = document.getElementById('menuType').value;
-                const menuItemsContainer = document.getElementById('menuItems');
-                menuItemsContainer.innerHTML = '';
+                const menuItems = document.getElementById('menuItems');
+                menuItems.innerHTML = '';
+                
+                if (!menuType) return;
 
-                if (menuType) {
-                    for (const category in priceList) {
-                        const categoryDiv = document.createElement('div');
-                        categoryDiv.className = 'menu-category';
-                        categoryDiv.innerHTML = `<h3>${category}</h3>`;
+                const selectedMenu = menuData.find(row => row[0] === menuType);
+                
+                const categories = [
+                    { name: 'סלטים', count: selectedMenu[1], maxPrice: Infinity },
+                    { name: 'מנות ראשונות', count: selectedMenu[2], maxPrice: selectedMenu[3] },
+                    { name: 'מנות עיקריות', count: selectedMenu[4], maxPrice: selectedMenu[5] },
+                    { name: 'תוספות', count: selectedMenu[6], maxPrice: selectedMenu[7] },
+                    { name: 'קינוחים', count: 1, maxPrice: selectedMenu[8] },
+                    { name: 'לחמניות', count: selectedMenu[9], maxPrice: Infinity }
+                ];
 
-                        for (const item in priceList[category]) {
-                            const itemDiv = document.createElement('div');
-                            itemDiv.className = 'menu-item';
-                            itemDiv.innerHTML = `
-                                <input type="checkbox" id="${item}" name="${category}" value="${item}">
-                                <label for="${item}">${item} (₪${priceList[category][item]})</label>
-                                <input type="number" id="${item}_quantity" min="0" value="0" style="width: 50px;">
-                            `;
-                            categoryDiv.appendChild(itemDiv);
-                        }
-
-                        menuItemsContainer.appendChild(categoryDiv);
+                categories.forEach(category => {
+                    const categoryItems = priceListData.filter(item => item[0] === category.name && item[2] <= category.maxPrice);
+                    
+                    const categoryDiv = document.createElement('div');
+                    categoryDiv.className = 'category';
+                    
+                    const categoryTitle = document.createElement('div');
+                    categoryTitle.className = 'category-title';
+                    categoryTitle.textContent = category.name;
+                    categoryDiv.appendChild(categoryTitle);
+                    
+                    const categoryItemsDiv = document.createElement('div');
+                    categoryItemsDiv.className = 'category-items';
+                    
+                    for (let i = 0; i < category.count; i++) {
+                        const formGroup = document.createElement('div');
+                        formGroup.className = 'form-group';
+                        
+                        const label = document.createElement('label');
+                        label.textContent = `${category.name} ${i + 1}:`;
+                        
+                        const select = document.createElement('select');
+                        select.name = `${category.name}_${i}`;
+                        select.required = true;
+                        select.onchange = calculateTotal;
+                        
+                        const defaultOption = document.createElement('option');
+                        defaultOption.value = '';
+                        defaultOption.textContent = `בחר ${category.name}`;
+                        select.appendChild(defaultOption);
+                        
+                        categoryItems.forEach(item => {
+                            const option = document.createElement('option');
+                            option.value = JSON.stringify({name: item[1], price: item[2]});
+                            option.textContent = item[1];
+                            select.appendChild(option);
+                        });
+                        
+                        formGroup.appendChild(label);
+                        formGroup.appendChild(select);
+                        categoryItemsDiv.appendChild(formGroup);
                     }
-                }
+                    
+                    const addButton = document.createElement('button');
+                    addButton.type = 'button';
+                    addButton.textContent = `הוסף ${category.name}`;
+                    addButton.onclick = () => addExtraItem(category.name, categoryItemsDiv);
+                    categoryItemsDiv.appendChild(addButton);
+                    
+                    categoryDiv.appendChild(categoryItemsDiv);
+                    menuItems.appendChild(categoryDiv);
+                });
+                
+                calculateTotal();
             }
 
-            // Add event listener for menu type change
-            document.getElementById('menuType').addEventListener('change', loadMenuItems);
+            function addExtraItem(category, categoryItemsDiv) {
+                const formGroup = document.createElement('div');
+                formGroup.className = 'form-group';
+                
+                const label = document.createElement('label');
+                label.textContent = `${category} נוסף:`;
+                
+                const select = document.createElement('select');
+                select.name = `${category}_extra`;
+                select.onchange = calculateTotal;
+                
+                const default                const defaultOption = document.createElement('option');
+                defaultOption.value = '';
+                defaultOption.textContent = `בחר ${category} נוסף`;
+                select.appendChild(defaultOption);
 
-            // Function to calculate summary
-            function calculateSummary() {
+                const allCategoryItems = priceListData.filter(item => item[0] === category);
+                allCategoryItems.forEach(item => {
+                    const option = document.createElement('option');
+                    option.value = JSON.stringify({name: item[1], price: item[2]});
+                    option.textContent = `${item[1]} - ₪${item[2]}`;
+                    select.appendChild(option);
+                });
+
+                formGroup.appendChild(label);
+                formGroup.appendChild(select);
+                categoryItemsDiv.insertBefore(formGroup, categoryItemsDiv.lastElementChild);
+
+                calculateTotal();
+            }
+
+            function calculateTotal() {
                 const menuType = document.getElementById('menuType').value;
-                const guestCount = parseInt(document.getElementById('guestCount').value) || 0;
-                const deliveryCost = parseFloat(document.getElementById('delivery').value) || 0;
+                if (!menuType) return;
 
-                if (!menuType || guestCount === 0) {
-                    document.getElementById('summary').innerHTML = '<p>נא למלא את כל השדות הנדרשים.</p>';
-                    return;
-                }
+                const selectedMenu = menuData.find(row => row[0] === menuType);
+                if (!selectedMenu) return;
 
-                let totalCost = menuTypes[menuType].pricePerPerson * guestCount;
-                let additionalItems = [];
+                let basePrice = selectedMenu[10] || 0;  // מחיר בסיס לתפריט
+                let additionalPrice = 0;
 
-                document.querySelectorAll('#menuItems input[type="checkbox"]:checked').forEach(item => {
-                    const category = item.name;
-                    const itemName = item.value;
-                    const quantity = parseInt(document.getElementById(`${itemName}_quantity`).value) || 0;
-                    const price = priceList[category][itemName];
-                    const itemTotal = price * quantity;
-                    totalCost += itemTotal;
-                    if (quantity > 0) {
-                        additionalItems.push(`${itemName} (${quantity}x): ₪${itemTotal.toFixed(2)}`);
+                const selects = document.querySelectorAll('#menuItems select');
+                selects.forEach(select => {
+                    if (select.value) {
+                        const item = JSON.parse(select.value);
+                        if (select.name.includes('_extra')) {
+                            additionalPrice += parseFloat(item.price);
+                        }
                     }
                 });
 
-                totalCost += deliveryCost;
+                const deliveryPrice = parseFloat(document.getElementById('delivery').value) || 0;
 
-                let summaryHTML = `
-                    <h2>סיכום הזמנה</h2>
-                    <p>סוג תפריט: ${menuType}</p>
-                    <p>מספר אורחים: ${guestCount}</p>
-                    <p>מחיר בסיס למנה: ₪${menuTypes[menuType].pricePerPerson}</p>
-                    <p>סה"כ מחיר בסיס: ₪${(menuTypes[menuType].pricePerPerson * guestCount).toFixed(2)}</p>
+                const totalPrice = basePrice + additionalPrice + deliveryPrice;
+
+                const summary = document.getElementById('summary');
+                summary.innerHTML = `
+                    <p>מחיר בסיס לתפריט: ₪${basePrice.toFixed(2)}</p>
+                    <p>תוספות: ₪${additionalPrice.toFixed(2)}</p>
+                    <p>הובלה: ₪${deliveryPrice.toFixed(2)}</p>
+                    <p>סה"כ: ₪${totalPrice.toFixed(2)}</p>
                 `;
-
-                if (additionalItems.length > 0) {
-                    summaryHTML += '<h3>פריטים נוספים:</h3><ul>';
-                    additionalItems.forEach(item => {
-                        summaryHTML += `<li>${item}</li>`;
-                    });
-                    summaryHTML += '</ul>';
-                }
-
-                summaryHTML += `
-                    <p>עלות הובלה: ₪${deliveryCost.toFixed(2)}</p>
-                    <h3>סה"כ לתשלום: ₪${totalCost.toFixed(2)}</h3>
-                `;
-
-                document.getElementById('summary').innerHTML = summaryHTML;
             }
 
-            // Add event listeners for form changes
-            document.getElementById('quoteForm').addEventListener('change', calculateSummary);
-
-            // Export functions remain unchanged
-            function exportToPDF() {
-                // PDF export code
+            function generatePDF() {
+                const quoteData = collectFormData();
+                // קוד לייצור PDF יתווסף כאן
             }
 
-            function exportToExcel() {
-                // Excel export code
+            function generateExcel() {
+                const quoteData = collectFormData();
+                // קוד לייצור Excel יתווסף כאן
             }
 
-            // Load data when the DOM is ready
-            loadData();
+            function collectFormData() {
+                const formData = {
+                    customerName: document.getElementById('customerName').value,
+                    phone: document.getElementById('phone').value,
+                    email: document.getElementById('email').value,
+                    eventLocation: document.getElementById('eventLocation').value,
+                    address: document.getElementById('address').value,
+                    date: document.getElementById('date').value,
+                    contactPerson: document.getElementById('contactPerson').value,
+                    contactPhone: document.getElementById('contactPhone').value,
+                    menuType: document.getElementById('menuType').value,
+                    delivery: document.getElementById('delivery').value,
+                    items: []
+                };
+
+                const selects = document.querySelectorAll('#menuItems select');
+                selects.forEach(select => {
+                    if (select.value) {
+                        const item = JSON.parse(select.value);
+                        formData.items.push({
+                            category: select.name.split('_')[0],
+                            name: item.name,
+                            price: item.price
+                        });
+                    }
+                });
+
+                return formData;
+            }
         });
     </script>
 </body>
