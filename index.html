@@ -7,189 +7,191 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
-        /* הסגנונות נשארים ללא שינוי */
+        /* Styles remain unchanged */
     </style>
 </head>
 <body>
     <div class="container">
         <h1>מערכת הצעות מחיר לקייטרינג</h1>
         <form id="quoteForm">
-            <!-- שדות הטופס נשארים ללא שינוי -->
+            <!-- Form fields remain unchanged -->
         </form>
     </div>
 
     <script>
-        let menuTypes = {};
-        let priceList = {};
+        document.addEventListener('DOMContentLoaded', function() {
+            let menuTypes = {};
+            let priceList = {};
 
-        // פונקציה לטעינת קובץ CSV
-        async function loadCSV(url) {
-            const response = await fetch(url);
-            const data = await response.text();
-            return parseCSV(data);
-        }
+            // Function to load CSV file
+            async function loadCSV(url) {
+                const response = await fetch(url);
+                const data = await response.text();
+                return parseCSV(data);
+            }
 
-        // פונקציה לפירוק מחרוזת CSV
-        function parseCSV(csv) {
-            const lines = csv.split('\n');
-            const headers = lines[0].split(',');
-            return lines.slice(1).map(line => {
-                const values = line.split(',');
-                return headers.reduce((obj, header, index) => {
-                    obj[header.trim()] = values[index] ? values[index].trim() : '';
-                    return obj;
-                }, {});
-            });
-        }
-
-        // טעינת הנתונים
-        async function loadData() {
-            try {
-                const menuData = await loadCSV('menu.csv');
-                const priceListData = await loadCSV('pricelist.csv');
-
-                menuData.forEach(row => {
-                    if (row['סוג תפריט']) {
-                        menuTypes[row['סוג תפריט']] = {
-                            salads: parseInt(row['כמות סלטים']),
-                            starters: parseInt(row['כמות מנות ראשונות']),
-                            mainDishes: parseInt(row['כמות מנות עיקריות']),
-                            sideDishes: parseInt(row['כמות תוספות']),
-                            maxStarterPrice: parseFloat(row['מקסימום מחיר מנה ראשונה']),
-                            maxMainPrice: parseFloat(row['מקסימום מחיר מנה עיקרית']),
-                            maxSidePrice: parseFloat(row['מקסימום מחיר לתוספות']),
-                            maxDessertPrice: parseFloat(row['מחיר מקסימום לקינוח']),
-                            breadRolls: parseInt(row['כמות לחמניה']),
-                            pricePerPerson: parseFloat(row['מחיר למנה'])
-                        };
-                    }
+            // Function to parse CSV string
+            function parseCSV(csv) {
+                const lines = csv.split('\n');
+                const headers = lines[0].split(',');
+                return lines.slice(1).map(line => {
+                    const values = line.split(',');
+                    return headers.reduce((obj, header, index) => {
+                        obj[header.trim()] = values[index] ? values[index].trim() : '';
+                        return obj;
+                    }, {});
                 });
+            }
 
-                priceListData.forEach(row => {
-                    if (row['קטגוריה'] && row['שם מנה']) {
-                        if (!priceList[row['קטגוריה']]) {
-                            priceList[row['קטגוריה']] = {};
+            // Loading data
+            async function loadData() {
+                try {
+                    const menuData = await loadCSV('menu.csv');
+                    const priceListData = await loadCSV('pricelist.csv');
+
+                    menuData.forEach(row => {
+                        if (row['סוג תפריט']) {
+                            menuTypes[row['סוג תפריט']] = {
+                                salads: parseInt(row['כמות סלטים']),
+                                starters: parseInt(row['כמות מנות ראשונות']),
+                                mainDishes: parseInt(row['כמות מנות עיקריות']),
+                                sideDishes: parseInt(row['כמות תוספות']),
+                                maxStarterPrice: parseFloat(row['מקסימום מחיר מנה ראשונה']),
+                                maxMainPrice: parseFloat(row['מקסימום מחיר מנה עיקרית']),
+                                maxSidePrice: parseFloat(row['מקסימום מחיר לתוספות']),
+                                maxDessertPrice: parseFloat(row['מחיר מקסימום לקינוח']),
+                                breadRolls: parseInt(row['כמות לחמניה']),
+                                pricePerPerson: parseFloat(row['מחיר למנה'])
+                            };
                         }
-                        priceList[row['קטגוריה']][row['שם מנה']] = parseFloat(row['מחיר']) || 0;
+                    });
+
+                    priceListData.forEach(row => {
+                        if (row['קטגוריה'] && row['שם מנה']) {
+                            if (!priceList[row['קטגוריה']]) {
+                                priceList[row['קטגוריה']] = {};
+                            }
+                            priceList[row['קטגוריה']][row['שם מנה']] = parseFloat(row['מחיר']) || 0;
+                        }
+                    });
+
+                    loadMenuTypeOptions();
+                } catch (error) {
+                    console.error('Error loading CSV files:', error);
+                    alert('אירעה שגיאה בטעינת הנתונים. אנא נסה שוב מאוחר יותר.');
+                }
+            }
+
+            // Function to load menu type options
+            function loadMenuTypeOptions() {
+                const menuTypeSelect = document.getElementById('menuType');
+                menuTypeSelect.innerHTML = '<option value="">בחר תפריט</option>';
+                for (const type in menuTypes) {
+                    const option = document.createElement('option');
+                    option.value = type;
+                    option.textContent = type;
+                    menuTypeSelect.appendChild(option);
+                }
+            }
+
+            // Function to load menu items
+            function loadMenuItems() {
+                const menuType = document.getElementById('menuType').value;
+                const menuItemsContainer = document.getElementById('menuItems');
+                menuItemsContainer.innerHTML = '';
+
+                if (menuType) {
+                    for (const category in priceList) {
+                        const categoryDiv = document.createElement('div');
+                        categoryDiv.className = 'menu-category';
+                        categoryDiv.innerHTML = `<h3>${category}</h3>`;
+
+                        for (const item in priceList[category]) {
+                            const itemDiv = document.createElement('div');
+                            itemDiv.className = 'menu-item';
+                            itemDiv.innerHTML = `
+                                <input type="checkbox" id="${item}" name="${category}" value="${item}">
+                                <label for="${item}">${item} (₪${priceList[category][item]})</label>
+                                <input type="number" id="${item}_quantity" min="0" value="0" style="width: 50px;">
+                            `;
+                            categoryDiv.appendChild(itemDiv);
+                        }
+
+                        menuItemsContainer.appendChild(categoryDiv);
+                    }
+                }
+            }
+
+            // Add event listener for menu type change
+            document.getElementById('menuType').addEventListener('change', loadMenuItems);
+
+            // Function to calculate summary
+            function calculateSummary() {
+                const menuType = document.getElementById('menuType').value;
+                const guestCount = parseInt(document.getElementById('guestCount').value) || 0;
+                const deliveryCost = parseFloat(document.getElementById('delivery').value) || 0;
+
+                if (!menuType || guestCount === 0) {
+                    document.getElementById('summary').innerHTML = '<p>נא למלא את כל השדות הנדרשים.</p>';
+                    return;
+                }
+
+                let totalCost = menuTypes[menuType].pricePerPerson * guestCount;
+                let additionalItems = [];
+
+                document.querySelectorAll('#menuItems input[type="checkbox"]:checked').forEach(item => {
+                    const category = item.name;
+                    const itemName = item.value;
+                    const quantity = parseInt(document.getElementById(`${itemName}_quantity`).value) || 0;
+                    const price = priceList[category][itemName];
+                    const itemTotal = price * quantity;
+                    totalCost += itemTotal;
+                    if (quantity > 0) {
+                        additionalItems.push(`${itemName} (${quantity}x): ₪${itemTotal.toFixed(2)}`);
                     }
                 });
 
-                loadMenuTypeOptions();
-            } catch (error) {
-                console.error('Error loading CSV files:', error);
-                alert('אירעה שגיאה בטעינת הנתונים. אנא נסה שוב מאוחר יותר.');
-            }
-        }
+                totalCost += deliveryCost;
 
-        // פונקציה לטעינת אפשרויות התפריט
-        function loadMenuTypeOptions() {
-            const menuTypeSelect = document.getElementById('menuType');
-            menuTypeSelect.innerHTML = '<option value="">בחר תפריט</option>';
-            for (const type in menuTypes) {
-                const option = document.createElement('option');
-                option.value = type;
-                option.textContent = type;
-                menuTypeSelect.appendChild(option);
-            }
-        }
+                let summaryHTML = `
+                    <h2>סיכום הזמנה</h2>
+                    <p>סוג תפריט: ${menuType}</p>
+                    <p>מספר אורחים: ${guestCount}</p>
+                    <p>מחיר בסיס למנה: ₪${menuTypes[menuType].pricePerPerson}</p>
+                    <p>סה"כ מחיר בסיס: ₪${(menuTypes[menuType].pricePerPerson * guestCount).toFixed(2)}</p>
+                `;
 
-        // פונקציה לטעינת פריטי התפריט
-        function loadMenuItems() {
-            const menuType = document.getElementById('menuType').value;
-            const menuItemsContainer = document.getElementById('menuItems');
-            menuItemsContainer.innerHTML = '';
-
-            if (menuType) {
-                for (const category in priceList) {
-                    const categoryDiv = document.createElement('div');
-                    categoryDiv.className = 'menu-category';
-                    categoryDiv.innerHTML = `<h3>${category}</h3>`;
-
-                    for (const item in priceList[category]) {
-                        const itemDiv = document.createElement('div');
-                        itemDiv.className = 'menu-item';
-                        itemDiv.innerHTML = `
-                            <input type="checkbox" id="${item}" name="${category}" value="${item}">
-                            <label for="${item}">${item} (₪${priceList[category][item]})</label>
-                            <input type="number" id="${item}_quantity" min="0" value="0" style="width: 50px;">
-                        `;
-                        categoryDiv.appendChild(itemDiv);
-                    }
-
-                    menuItemsContainer.appendChild(categoryDiv);
+                if (additionalItems.length > 0) {
+                    summaryHTML += '<h3>פריטים נוספים:</h3><ul>';
+                    additionalItems.forEach(item => {
+                        summaryHTML += `<li>${item}</li>`;
+                    });
+                    summaryHTML += '</ul>';
                 }
-            }
-        }
 
-        // הוספת מאזין אירועים לשינוי בסוג התפריט
-        document.getElementById('menuType').addEventListener('change', loadMenuItems);
+                summaryHTML += `
+                    <p>עלות הובלה: ₪${deliveryCost.toFixed(2)}</p>
+                    <h3>סה"כ לתשלום: ₪${totalCost.toFixed(2)}</h3>
+                `;
 
-        // פונקציה לחישוב סיכום ההזמנה
-        function calculateSummary() {
-            const menuType = document.getElementById('menuType').value;
-            const guestCount = parseInt(document.getElementById('guestCount').value) || 0;
-            const deliveryCost = parseFloat(document.getElementById('delivery').value) || 0;
-
-            if (!menuType || guestCount === 0) {
-                document.getElementById('summary').innerHTML = '<p>נא למלא את כל השדות הנדרשים.</p>';
-                return;
+                document.getElementById('summary').innerHTML = summaryHTML;
             }
 
-            let totalCost = menuTypes[menuType].pricePerPerson * guestCount;
-            let additionalItems = [];
+            // Add event listeners for form changes
+            document.getElementById('quoteForm').addEventListener('change', calculateSummary);
 
-            document.querySelectorAll('#menuItems input[type="checkbox"]:checked').forEach(item => {
-                const category = item.name;
-                const itemName = item.value;
-                const quantity = parseInt(document.getElementById(`${itemName}_quantity`).value) || 0;
-                const price = priceList[category][itemName];
-                const itemTotal = price * quantity;
-                totalCost += itemTotal;
-                if (quantity > 0) {
-                    additionalItems.push(`${itemName} (${quantity}x): ₪${itemTotal.toFixed(2)}`);
-                }
-            });
-
-            totalCost += deliveryCost;
-
-            let summaryHTML = `
-                <h2>סיכום הזמנה</h2>
-                <p>סוג תפריט: ${menuType}</p>
-                <p>מספר אורחים: ${guestCount}</p>
-                <p>מחיר בסיס למנה: ₪${menuTypes[menuType].pricePerPerson}</p>
-                <p>סה"כ מחיר בסיס: ₪${(menuTypes[menuType].pricePerPerson * guestCount).toFixed(2)}</p>
-            `;
-
-            if (additionalItems.length > 0) {
-                summaryHTML += '<h3>פריטים נוספים:</h3><ul>';
-                additionalItems.forEach(item => {
-                    summaryHTML += `<li>${item}</li>`;
-                });
-                summaryHTML += '</ul>';
+            // Export functions remain unchanged
+            function exportToPDF() {
+                // PDF export code
             }
 
-            summaryHTML += `
-                <p>עלות הובלה: ₪${deliveryCost.toFixed(2)}</p>
-                <h3>סה"כ לתשלום: ₪${totalCost.toFixed(2)}</h3>
-            `;
+            function exportToExcel() {
+                // Excel export code
+            }
 
-            document.getElementById('summary').innerHTML = summaryHTML;
-        }
-
-        // הוספת מאזיני אירועים לשינויים בטופס
-        document.getElementById('quoteForm').addEventListener('change', calculateSummary);
-
-        // פונקציות הייצוא נשארות ללא שינוי
-        function exportToPDF() {
-            // קוד ייצוא ל-PDF
-        }
-
-        function exportToExcel() {
-            // קוד ייצוא ל-Excel
-        }
-
-        // טעינת הנתונים בעת טעינת הדף
-        loadData();
+            // Load data when the DOM is ready
+            loadData();
+        });
     </script>
 </body>
 </html>
