@@ -6,59 +6,81 @@
     <title>מערכת הצעות מחיר</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f0f0f0; }
-        .container { max-width: 800px; margin: 0 auto; background-color: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-        h1 { color: #333; text-align: center; }
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .form-row { display: flex; margin-bottom: 10px; }
+        .form-group { flex: 1; margin-right: 10px; }
+        .form-group:last-child { margin-right: 0; }
+        input, select { width: 100%; padding: 5px; }
         #error-message { color: red; font-weight: bold; margin: 20px 0; }
-        #content { display: none; }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; }
-        input, select { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
-        #menuItems { margin-top: 20px; }
-        #summary { margin-top: 20px; padding: 10px; background-color: #f9f9f9; border-radius: 4px; }
+        button { padding: 10px; margin-right: 10px; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>מערכת הצעות מחיר</h1>
+        <h2>מערכת הצעות מחיר</h2>
         <div id="error-message"></div>
-        <div id="content">
+
+        <div class="form-row">
             <div class="form-group">
-                <label for="customerName">שם לקוח:</label>
-                <input type="text" id="customerName">
+                שם לקוח: <input type="text" id="customerName">
             </div>
             <div class="form-group">
-                <label for="phone">טלפון:</label>
-                <input type="tel" id="phone">
+                טלפון: <input type="tel" id="phone">
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                דוא"ל: <input type="email" id="email">
             </div>
             <div class="form-group">
-                <label for="email">דוא"ל:</label>
-                <input type="email" id="email">
+                מיקום האירוע: <input type="text" id="eventLocation">
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                כתובת: <input type="text" id="address">
             </div>
             <div class="form-group">
-                <label for="eventLocation">מיקום האירוע:</label>
-                <input type="text" id="eventLocation">
+                תאריך: <input type="date" id="date">
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                איש קשר: <input type="text" id="contactPerson">
             </div>
             <div class="form-group">
-                <label for="eventDate">תאריך האירוע:</label>
-                <input type="date" id="eventDate">
+                טלפון איש קשר: <input type="tel" id="contactPhone">
             </div>
+        </div>
+
+        <div class="form-row">
             <div class="form-group">
-                <label for="menuType">סוג תפריט:</label>
-                <select id="menuType"></select>
+                סוג תפריט: <select id="menuType"></select>
             </div>
-            <div id="menuItems"></div>
+        </div>
+
+        <div id="menuItems"></div>
+
+        <div class="form-row">
             <div class="form-group">
-                <label for="delivery">הובלה:</label>
-                <input type="number" id="delivery" value="0">
+                הובלה: <input type="number" id="delivery" value="0">
             </div>
-            <div id="summary"></div>
+        </div>
+
+        <div id="summary"></div>
+
+        <div class="form-row">
+            <button onclick="generatePDF()">ייצוא ל-PDF</button>
+            <button onclick="generateExcel()">ייצוא ל-Excel</button>
         </div>
     </div>
 
     <script>
         const errorMessageElement = document.getElementById('error-message');
-        const contentElement = document.getElementById('content');
 
         const baseUrl = 'https://raw.githubusercontent.com/lyzerl/ofers/main/';
         
@@ -78,7 +100,6 @@
             console.log('Loaded menu types:', menuTypes);
             console.log('Loaded price list:', priceList);
             populateMenuTypes();
-            contentElement.style.display = 'block';
             errorMessageElement.textContent = 'הקבצים נטענו בהצלחה!';
         }).catch(error => {
             console.error('Error loading CSV files:', error);
@@ -174,6 +195,14 @@
 
         document.getElementById('delivery').addEventListener('input', updateSummary);
         document.getElementById('menuItems').addEventListener('change', updateSummary);
+
+        function generatePDF() {
+            alert('פונקציונליות ייצוא ל-PDF תתווסף בהמשך');
+        }
+
+        function generateExcel() {
+            alert('פונקציונליות ייצוא ל-Excel תתווסף בהמשך');
+        }
     </script>
 </body>
 </html>
