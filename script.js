@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         categories.forEach(category => {
             if (category.count > 0) { // יצירת תיבות בחירה רק אם יש count חיובי
-                const categoryItems = priceListData.filter(item => item[0] === category.name);
+                const categoryItems = priceListData.filter(item => item[0].trim() === category.name.trim());
                 console.log(`Items for category ${category.name}:`, categoryItems); // לוג לבדוק את הפריטים בקטגוריה
 
                 if (categoryItems.length === 0) {
