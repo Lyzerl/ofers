@@ -89,7 +89,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     categoryItems.forEach(item => {
                         const option = document.createElement('option');
                         option.value = JSON.stringify({name: item[1], price: item[2]});
-                        option.textContent = item[1];
+                        option.textContent = `${item[1]} - ₪${item[2]}`;
                         select.appendChild(option);
                     });
 
